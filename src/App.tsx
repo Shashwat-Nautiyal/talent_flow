@@ -1,25 +1,58 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { worker } from './mocks/browser';
+import { seedDatabase } from './seedData';
+import Layout from './components/Layout';
+import JobsBoard from './pages/JobsBoard';
+import JobDetail from './pages/JobDetail';
+import CandidatesList from './pages/CandidatesList';
+import CandidateDetail from './pages/CandidateDetail';
+import AssessmentBuilder from './pages/AssessmentBuilder';
 
 function App() {
+  useEffect(() => {
+    // Start MSW worker
+    const startWorker = async () => {
+      try {
+        await worker.start({
+          onUnhandledRequest: 'bypass',
+        });
+        console.log('MSW worker started successfully');
+      } catch (error) {
+        console.error('Failed to start MSW worker:', error);
+      }
+    };
+    
+    startWorker();
+    
+    // Test MSW
+    setTimeout(async () => {
+      try {
+        const response = await fetch('/api/test');
+        const data = await response.json();
+        console.log('MSW test result:', data);
+      } catch (error) {
+        console.error('MSW test failed:', error);
+      }
+    }, 2000);
+    
+    // Seed database
+    seedDatabase();
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/jobs" replace />} />
+          <Route path="/jobs" element={<JobsBoard />} />
+          <Route path="/jobs/:jobId" element={<JobDetail />} />
+          <Route path="/candidates" element={<CandidatesList />} />
+          <Route path="/candidates/:id" element={<CandidateDetail />} />
+          <Route path="/assessments/:jobId" element={<AssessmentBuilder />} />
+        </Routes>
+      </Layout>
+    </Router>
   );
 }
 
