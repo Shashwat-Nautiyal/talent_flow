@@ -13,9 +13,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigation = [
     { name: 'Castle Hall', href: '/', icon: Castle, exact: true },
-    { name: 'Quest Board', href: '/jobs', icon: Scroll },
-    { name: 'Royal Registry', href: '/candidates', icon: Shield },
-    { name: 'War Room', href: '/pipeline', icon: Swords },
+    { name: 'Job Board', href: '/jobs', icon: Scroll },
+    { name: 'Candidates', href: '/candidates', icon: Shield },
+    { name: 'Pipeline', href: '/pipeline', icon: Swords },
   ];
 
   return (

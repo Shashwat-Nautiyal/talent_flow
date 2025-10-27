@@ -1,72 +1,70 @@
 import { db, Job, Candidate, Assessment } from './database';
 
 const jobTitles = [
-  'Elite Castle Guard',
-  'Royal Knight Commander',
-  'Master Siege Engineer',
-  'Cavalry Squadron Leader',
-  'Archery Division Captain',
-  'Infantry Battalion Chief',
-  'Royal Scout Pathfinder',
-  'Fortress Defense Specialist',
-  'War Strategy Advisor',
-  'Kingdom Battle Tactician',
-  'Dragon Slayer Champion',
-  'Elite Crossbow Regiment',
-  'Castle Construction Overseer',
-  'Royal Weapons Master',
-  'Kingdom Logistics Commander',
-  'Military Training Instructor',
-  'Kingdom Reconnaissance Officer',
-  'Royal Guard Protector',
-  'Heavy Armor Division Leader',
-  'Kingdom Naval Commander',
-  'Siege Weapon Operator',
-  'Elite Mounted Warrior',
-  'Castle Blacksmith Master',
-  'Kingdom Quartermaster',
-  'Royal Messenger Corps'
+  'Senior Software Engineer',
+  'Product Manager',
+  'UX/UI Designer',
+  'Data Scientist',
+  'DevOps Engineer',
+  'Full Stack Developer',
+  'Marketing Manager',
+  'Sales Director',
+  'Business Analyst',
+  'Project Manager',
+  'Frontend Developer',
+  'Backend Developer',
+  'Mobile App Developer',
+  'Quality Assurance Engineer',
+  'Cybersecurity Specialist',
+  'Cloud Architect',
+  'HR Manager',
+  'Content Writer',
+  'Graphic Designer',
+  'Financial Analyst',
+  'Customer Success Manager',
+  'Scrum Master',
+  'Technical Writer',
+  'Operations Manager',
+  'Account Executive'
 ];
 
 const tags = [
-  'Swordsmanship', 'Archery', 'Horsemanship', 'Strategy', 'Leadership', 'Combat', 'Defense', 'Siege',
-  'Reconnaissance', 'Tactics', 'Training', 'Logistics', 'Fortification', 'Naval', 'Cavalry', 'Infantry',
-  'Elite', 'Veteran', 'Rookie', 'Full-time', 'Seasonal', 'Campaign', 'Senior Rank', 'Officer', 'Enlisted',
-  'Frontline', 'Support', 'Command', 'Mobile', 'Garrison', 'Expeditionary', 'Special Forces'
+  'JavaScript', 'React', 'Node.js', 'Python', 'Java', 'AWS', 'Azure', 'Docker',
+  'Kubernetes', 'SQL', 'NoSQL', 'TypeScript', 'Angular', 'Vue.js', 'MongoDB', 'PostgreSQL',
+  'Full-time', 'Remote', 'Hybrid', 'Senior', 'Junior', 'Mid-level', 'Contract', 'Freelance',
+  'Leadership', 'Agile', 'Scrum', 'Communication', 'Design', 'Analytics', 'Marketing', 'Sales'
 ];
 
 const firstNames = [
-  'Arthur', 'Guinevere', 'Lancelot', 'Eleanor', 'Roland', 'Isolde', 'Percival', 'Morgana',
-  'Gawain', 'Rowena', 'Tristan', 'Beatrice', 'Gareth', 'Viviane', 'Cedric', 'Elaine',
-  'Edmund', 'Rosalind', 'Geoffrey', 'Cordelia', 'Baldwin', 'Guinivere', 'Alaric', 'Matilda',
-  'Godwin', 'Adelaide', 'Ragnar', 'Freya', 'Thorin', 'Astrid', 'Sigurd', 'Brunhilde',
-  'Leofric', 'Edith', 'Aldric', 'Giselle', 'Roderick', 'Meredith', 'Godfrey', 'Elowen',
-  'Aldous', 'Rowena', 'Beowulf', 'Sigrid', 'Cedric', 'Hildegard', 'Drogo', 'Ingrid',
-  'Egbert', 'Aelfgifu', 'Fenric', 'Brynhild', 'Godric', 'Clothilde', 'Harald', 'Dagmar',
-  'Ivar', 'Eira', 'Jorund', 'Freja', 'Kendrick', 'Gwendolyn', 'Leopold', 'Heloise',
-  'Magnus', 'Isolde', 'Niall', 'Jocelyn', 'Odo', 'Karlotta', 'Peredur', 'Linnea',
-  'Quintus', 'Morwenna', 'Ragnor', 'Nerida', 'Seamus', 'Olwen', 'Tancred', 'Petra',
-  'Ulric', 'Quintessa', 'Valdemar', 'Rosamund', 'Wolfric', 'Sybil', 'Xander', 'Tamsin',
-  'Yvor', 'Una', 'Zephyr', 'Venetia', 'Aldwin', 'Winifred', 'Bran', 'Ximena',
-  'Caradoc', 'Ysabel', 'Duncan', 'Zelda', 'Edric', 'Anwen', 'Finnian', 'Branwen',
-  'Garrick', 'Catrin', 'Hadrian', 'Drusilla', 'Iolo', 'Enid', 'Jasper', 'Ffion'
+  'Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Mason',
+  'Isabella', 'William', 'Mia', 'James', 'Charlotte', 'Benjamin', 'Amelia', 'Lucas',
+  'Harper', 'Henry', 'Evelyn', 'Alexander', 'Abigail', 'Michael', 'Emily', 'Daniel',
+  'Elizabeth', 'Matthew', 'Sofia', 'Jackson', 'Avery', 'David', 'Ella', 'Joseph',
+  'Scarlett', 'Samuel', 'Grace', 'Carter', 'Chloe', 'Owen', 'Victoria', 'Wyatt',
+  'Riley', 'John', 'Aria', 'Jack', 'Lily', 'Luke', 'Aubrey', 'Jayden', 'Zoey',
+  'Dylan', 'Penelope', 'Grayson', 'Lillian', 'Levi', 'Addison', 'Isaac', 'Layla',
+  'Gabriel', 'Natalie', 'Julian', 'Camila', 'Mateo', 'Hannah', 'Anthony', 'Brooklyn',
+  'Jaxon', 'Zoe', 'Lincoln', 'Nora', 'Joshua', 'Leah', 'Christopher', 'Savannah',
+  'Andrew', 'Audrey', 'Theodore', 'Claire', 'Caleb', 'Eleanor', 'Ryan', 'Skylar',
+  'Asher', 'Ellie', 'Nathan', 'Samantha', 'Thomas', 'Stella', 'Leo', 'Paisley',
+  'Isaiah', 'Violet', 'Charles', 'Mila', 'Josiah', 'Allison', 'Hudson', 'Alexa',
+  'Christian', 'Anna', 'Hunter', 'Hazel', 'Connor', 'Aaliyah', 'Eli', 'Ariana'
 ];
 
 const lastNames = [
-  'Ironforge', 'Stormrider', 'Blackthorn', 'Silverhelm', 'Dragonbane', 'Shadowblade', 'Lionheart', 'Thundershield',
-  'Ravencrest', 'Goldspear', 'Nightingale', 'Oakenshield', 'Frostborne', 'Flameheart', 'Steelwind', 'Stonefist',
-  'Wolfsbane', 'Eaglewing', 'Warhammer', 'Brightblade', 'Darkwater', 'Swiftarrow', 'Bloodraven', 'Firebrand',
-  'Moonshadow', 'Starforge', 'Cloudbreaker', 'Earthshaker', 'Windwhisper', 'Skystrike', 'Sunblade', 'Wintermane',
-  'Ashwood', 'Emberfall', 'Grimwald', 'Hawkeye', 'Ironside', 'Knightfall', 'Lightbringer', 'Mountainheart',
-  'Northstar', 'Proudfoot', 'Quickstrike', 'Redcrest', 'Shadowmere', 'Thornfield', 'Valorheart', 'Whitestone',
-  'Battleborn', 'Crowley', 'Dawnbringer', 'Evergreen', 'Fairweather', 'Goldcrest', 'Highcastle', 'Ironwood',
-  'Kingsley', 'Longbow', 'Morningstar', 'Nightshade', 'Proudheart', 'Ravenwood', 'Silvermoon', 'Thornheart',
-  'Valorwatch', 'Wildewood', 'Blackstone', 'Coldsteel', 'Drakemore', 'Fairwind', 'Greymantle', 'Highsword',
-  'Ironguard', 'Keensword', 'Lightfoot', 'Moonblade', 'Northguard', 'Proudsword', 'Redmane', 'Stormwatch',
-  'Trueblade', 'Vanguard', 'Wardwell', 'Axeborn', 'Battleforge', 'Crowstrike', 'Drakeheart', 'Evenstar',
-  'Fireforge', 'Goldcrown', 'Hammerfist', 'Ironvale', 'Knightbane', 'Lionsguard', 'Moonforge', 'Nightblade',
-  'Oakheart', 'Stormborn', 'Thornshield', 'Valormane', 'Warbringer', 'Brightforge', 'Coldforge', 'Dawnstrike',
-  'Emberforge', 'Firewatch', 'Goldwatch', 'Hammerfall', 'Ironwatch', 'Lightguard', 'Starwatch', 'Stormguard'
+  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+  'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas',
+  'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White',
+  'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young',
+  'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores',
+  'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell',
+  'Carter', 'Roberts', 'Gomez', 'Phillips', 'Evans', 'Turner', 'Diaz', 'Parker',
+  'Cruz', 'Edwards', 'Collins', 'Reyes', 'Stewart', 'Morris', 'Morales', 'Murphy',
+  'Cook', 'Rogers', 'Gutierrez', 'Ortiz', 'Morgan', 'Cooper', 'Peterson', 'Bailey',
+  'Reed', 'Kelly', 'Howard', 'Ramos', 'Kim', 'Cox', 'Ward', 'Richardson',
+  'Watson', 'Brooks', 'Chavez', 'Wood', 'James', 'Bennett', 'Gray', 'Mendoza',
+  'Ruiz', 'Hughes', 'Price', 'Alvarez', 'Castillo', 'Sanders', 'Patel', 'Myers',
+  'Long', 'Ross', 'Foster', 'Jimenez', 'Powell', 'Jenkins', 'Perry', 'Russell'
 ];
 
 const stages: Candidate['stage'][] = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
@@ -92,12 +90,12 @@ export async function seedDatabase() {
         tags[Math.floor(Math.random() * tags.length)]
       ),
       order: i,
-      description: `The Kingdom seeks a skilled ${title} to serve in our glorious army. This noble quest requires valor, dedication, and unwavering loyalty to the crown.`,
+      description: `We are seeking a talented ${title} to join our growing team. This role offers an exciting opportunity to work on innovative projects and grow your career.`,
       requirements: [
-        'Proven combat experience or military training',
-        '3+ years of service in a similar role',
-        'Strong leadership and tactical skills',
-        'Unwavering loyalty to the Kingdom'
+        'Bachelor\'s degree in relevant field or equivalent experience',
+        '3+ years of professional experience in a similar role',
+        'Strong communication and teamwork skills',
+        'Proven track record of delivering results'
       ],
       createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000),
       updatedAt: new Date()
@@ -122,7 +120,7 @@ export async function seedDatabase() {
       jobId: job.id,
       appliedAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
       updatedAt: new Date(),
-      notes: Math.random() > 0.7 ? 'Exemplary warrior with distinguished service record' : undefined
+      notes: Math.random() > 0.7 ? 'Strong candidate with excellent qualifications and experience' : undefined
     };
     candidates.push(candidate);
   }
@@ -154,44 +152,44 @@ export async function seedDatabase() {
     const assessment: Assessment = {
       id: crypto.randomUUID(),
       jobId: job.id,
-      title: `${job.title} Training Trial`,
+      title: `${job.title} Assessment`,
       sections: [
         {
           id: crypto.randomUUID(),
-          title: 'Combat Proficiency',
+          title: 'Professional Experience',
           questions: [
             {
               id: crypto.randomUUID(),
               type: 'single-choice',
-              question: 'How many years have you served in military campaigns?',
+              question: 'How many years of relevant professional experience do you have?',
               required: true,
-              options: ['0-1 years (Recruit)', '2-3 years (Soldier)', '4-5 years (Veteran)', '6+ years (Elite)']
+              options: ['0-1 years', '2-3 years', '4-5 years', '6+ years']
             },
             {
               id: crypto.randomUUID(),
               type: 'multi-choice',
-              question: 'Which weapons and combat styles have you mastered?',
+              question: 'Which technologies/tools are you proficient in?',
               required: true,
-              options: ['Longsword', 'Bow & Arrow', 'Crossbow', 'Pike', 'Mounted Combat', 'Hand-to-Hand', 'Siege Weapons', 'Naval Warfare']
+              options: ['JavaScript/TypeScript', 'React', 'Node.js', 'Python', 'Java', 'AWS/Azure', 'Docker/Kubernetes', 'SQL/NoSQL']
             },
             {
               id: crypto.randomUUID(),
               type: 'short-text',
-              question: 'Describe your most valorous battle achievement',
+              question: 'Describe your most significant professional achievement',
               required: true,
               maxLength: 500
             },
             {
               id: crypto.randomUUID(),
               type: 'long-text',
-              question: 'Explain your tactical approach when facing a numerically superior enemy force',
+              question: 'Explain your approach to solving complex technical problems',
               required: true,
               maxLength: 1000
             },
             {
               id: crypto.randomUUID(),
               type: 'numeric',
-              question: 'Rate your strategic warfare abilities (1-10)',
+              question: 'Rate your technical expertise (1-10)',
               required: true,
               min: 1,
               max: 10
@@ -200,19 +198,19 @@ export async function seedDatabase() {
         },
         {
           id: crypto.randomUUID(),
-          title: 'Honor & Valor Assessment',
+          title: 'Skills & Competencies',
           questions: [
             {
               id: crypto.randomUUID(),
               type: 'single-choice',
-              question: 'How do you maintain morale during prolonged sieges?',
+              question: 'How do you handle tight deadlines and pressure?',
               required: true,
-              options: ['Lead by example and inspire troops', 'Organize drills and competitions', 'Share tales of past victories', 'Ensure proper provisions and rest']
+              options: ['Prioritize tasks effectively', 'Communicate with team and stakeholders', 'Break down work into manageable chunks', 'Stay focused and maintain quality']
             },
             {
               id: crypto.randomUUID(),
               type: 'long-text',
-              question: 'Recount a time when you had to make a difficult decision that tested your honor',
+              question: 'Describe a challenging team situation and how you handled it',
               required: true,
               maxLength: 800
             }

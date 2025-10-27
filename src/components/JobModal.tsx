@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { Job } from '../database';
+import { Job, db } from '../database';
 import { ScrollModal, Input, WaxSealButton } from './ui';
 
 interface JobModalProps {
@@ -55,31 +55,37 @@ const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
 
     setLoading(true);
     try {
-      const payload = {
-        title: formData.title,
-        description: formData.description,
-        requirements: formData.requirements.filter(req => req.trim()),
-        tags: formData.tags.filter(tag => tag.trim()),
-        slug: formData.title.toLowerCase().replace(/\s+/g, '-')
-      };
+      const now = new Date();
+      const filteredTags = formData.tags.filter(tag => tag.trim());
+      const filteredRequirements = formData.requirements.filter(req => req.trim());
 
-      const url = job ? `/api/jobs/${job.id}` : '/api/jobs';
-      const method = job ? 'PATCH' : 'POST';
+      if (job) {
+        // Update existing job
+        await db.jobs.update(job.id, {
+          title: formData.title,
+          description: formData.description,
+          requirements: filteredRequirements,
+          tags: filteredTags,
+          slug: formData.title.toLowerCase().replace(/\s+/g, '-'),
+          updatedAt: now
+        });
+      } else {
+        // Create new job - get max order and increment
+        const allJobs = await db.jobs.toArray();
+        const maxOrder = allJobs.length > 0 ? Math.max(...allJobs.map(j => j.order)) : 0;
 
-      console.log('Sending request to:', url, 'with payload:', payload);
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      console.log('Response status:', response.status, 'Response:', response);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to save job: ${response.status} ${errorText}`);
+        await db.jobs.add({
+          id: `job-${Date.now()}`,
+          title: formData.title,
+          description: formData.description,
+          requirements: filteredRequirements,
+          tags: filteredTags,
+          slug: formData.title.toLowerCase().replace(/\s+/g, '-'),
+          status: 'active',
+          order: maxOrder + 1,
+          createdAt: now,
+          updatedAt: now
+        });
       }
 
       onClose();
@@ -137,31 +143,31 @@ const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
     <ScrollModal
       isOpen={true}
       onClose={onClose}
-      title={job ? '⚔️ Edit Quest' : '📜 Post New Quest'}
+      title={job ? '📝 Edit Job' : '📜 Post New Job'}
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <Input
-            label="Quest Title *"
+            label="Job Title *"
             type="text"
             value={formData.title}
             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            placeholder="e.g. Elite Castle Guard"
+            placeholder="e.g. Senior Software Engineer"
             error={errors.title}
           />
         </div>
 
         <div>
           <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
-            Quest Description
+            Job Description
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={4}
             className="w-full px-4 py-2 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold"
-            placeholder="Describe the quest and duties..."
+            placeholder="Describe the role and responsibilities..."
           />
         </div>
 
@@ -262,7 +268,7 @@ const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
             disabled={loading}
             variant="primary"
           >
-            {loading ? '⏳ Saving...' : (job ? '✓ Update Quest' : '✓ Post Quest')}
+            {loading ? '⏳ Saving...' : (job ? '✓ Update Job' : '✓ Post Job')}
           </WaxSealButton>
         </div>
       </form>
