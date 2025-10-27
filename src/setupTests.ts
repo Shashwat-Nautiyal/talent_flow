@@ -22,13 +22,3 @@ if (typeof global.TransformStream === 'undefined') {
     }
   };
 }
-
-// Mock fetch for tests
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    status: 200,
-    json: () => Promise.resolve({ message: 'test' }),
-    text: () => Promise.resolve('test'),
-  } as Response)
-);
