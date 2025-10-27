@@ -4,8 +4,8 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { db, Candidate } from '../database';
-import { User } from 'lucide-react';
-import { Badge, TorchLoader } from '../components/ui';
+import { User, ChevronDown, ChevronRight } from 'lucide-react';
+import { TorchLoader, ParchmentCard } from '../components/ui';
 
 interface Stage {
   id: Candidate['stage'];
@@ -15,12 +15,12 @@ interface Stage {
 }
 
 const stages: Stage[] = [
-  { id: 'applied', title: 'Applied Recruits', icon: '🛡️', color: 'bg-castle-stone-light' },
-  { id: 'screen', title: 'Initial Screening', icon: '⚔️', color: 'bg-aged-brown' },
-  { id: 'tech', title: 'Combat Trials', icon: '🗡️', color: 'bg-royal-purple' },
-  { id: 'offer', title: 'Royal Offer', icon: '📜', color: 'bg-gold-dark' },
-  { id: 'hired', title: 'Recruited Knights', icon: '👑', color: 'bg-forest-green' },
-  { id: 'rejected', title: 'Declined', icon: '⚠️', color: 'bg-blood-red' },
+  { id: 'applied', title: 'Applied', icon: '�', color: 'bg-castle-stone-light' },
+  { id: 'screen', title: 'Screening', icon: '👀', color: 'bg-aged-brown' },
+  { id: 'tech', title: 'Interview', icon: '�', color: 'bg-royal-purple' },
+  { id: 'offer', title: 'Offer', icon: '📜', color: 'bg-gold-dark' },
+  { id: 'hired', title: 'Hired', icon: '✓', color: 'bg-forest-green' },
+  { id: 'rejected', title: 'Rejected', icon: '✗', color: 'bg-blood-red' },
 ];
 
 interface CandidateCardProps {
@@ -40,20 +40,20 @@ const SortableCandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <div className="parchment-card p-4 mb-3 cursor-move hover:shadow-embossed transition-shadow">
+      <div className="bg-white rounded-lg border-2 border-aged-brown p-3 mb-2 cursor-move hover:shadow-md hover:border-gold transition-all duration-200">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 bg-blood-red rounded-full flex items-center justify-center flex-shrink-0 shadow-wax-seal">
-            <User className="w-5 h-5 text-gold" />
+          <div className="w-10 h-10 bg-gradient-to-br from-royal-purple to-royal-purple-dark rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+            <User className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-medieval font-bold text-castle-stone truncate">
+            <h4 className="font-medieval font-semibold text-castle-stone text-sm truncate">
               {candidate.name}
             </h4>
-            <p className="text-sm font-body text-aged-brown truncate">
+            <p className="text-xs font-body text-aged-brown truncate">
               {candidate.email}
             </p>
             {candidate.notes && (
-              <p className="text-xs font-body text-aged-brown-dark mt-2 italic">
+              <p className="text-xs font-body text-aged-brown-dark mt-1.5 line-clamp-2">
                 {candidate.notes}
               </p>
             )}
@@ -68,6 +68,7 @@ const KanbanBoard: React.FC = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [expandedStages, setExpandedStages] = useState<Set<Candidate['stage']>>(new Set());
 
   useEffect(() => {
     loadCandidates();
@@ -78,6 +79,18 @@ const KanbanBoard: React.FC = () => {
     const allCandidates = await db.candidates.toArray();
     setCandidates(allCandidates);
     setLoading(false);
+  };
+
+  const toggleStage = (stageId: Candidate['stage']) => {
+    setExpandedStages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(stageId)) {
+        newSet.delete(stageId);
+      } else {
+        newSet.add(stageId);
+      }
+      return newSet;
+    });
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -131,94 +144,122 @@ const KanbanBoard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <TorchLoader size="lg" text="Preparing the War Room..." />
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <TorchLoader size="lg" text="Loading pipeline..." />
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-parchment overflow-hidden">
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-4xl font-medieval font-bold text-castle-stone text-shadow-gold mb-2">
-            ⚔️ War Room Strategy Board
-          </h1>
-          <p className="font-body text-aged-brown-dark text-lg">
-            Manage your recruitment pipeline. Drag warriors between ranks to update their status.
-          </p>
-        </div>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl sm:text-4xl font-medieval font-bold text-castle-stone mb-1">
+          📊 Recruitment Pipeline
+        </h1>
+        <p className="font-body text-aged-brown-dark">
+          Track candidates through each recruitment stage. Click to expand and view details.
+        </p>
+      </div>
 
-        <DndContext
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 pb-6">
-            {stages.map((stage) => {
-              const stageCandidates = getCandidatesByStage(stage.id);
-              
-              return (
-                <SortableContext
-                  key={stage.id}
-                  id={stage.id}
-                  items={stageCandidates.map(c => c.id)}
-                  strategy={verticalListSortingStrategy}
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Accordion Stages */}
+        <div className="space-y-3">
+          {stages.map((stage) => {
+            const stageCandidates = getCandidatesByStage(stage.id);
+            const isExpanded = expandedStages.has(stage.id);
+            
+            return (
+              <ParchmentCard key={stage.id} className="overflow-hidden">
+                {/* Stage Header - Clickable */}
+                <button
+                  onClick={() => toggleStage(stage.id)}
+                  className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-parchment-dark transition-colors duration-200"
                 >
-                  <div className="flex flex-col h-[calc(100vh-250px)]">
-                    <div className={`${stage.color} text-parchment p-4 rounded-t-lg border-4 border-aged-brown`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-medieval font-bold text-lg flex items-center gap-2">
-                          <span>{stage.icon}</span>
-                          {stage.title}
-                        </h3>
-                      </div>
-                      <Badge variant="default" className="text-xs">
-                        {stageCandidates.length} Warriors
-                      </Badge>
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1">
+                    <div className={`${stage.color} text-white w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md`}>
+                      <span className="text-2xl">{stage.icon}</span>
                     </div>
-                    
-                    <div
-                      className="flex-1 bg-parchment-dark border-4 border-t-0 border-aged-brown rounded-b-lg p-3 overflow-y-auto"
-                      style={{ minHeight: '200px' }}
-                    >
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg sm:text-xl font-medieval font-bold text-castle-stone">
+                        {stage.title}
+                      </h3>
+                      <p className="text-sm font-body text-aged-brown">
+                        {stageCandidates.length} {stageCandidates.length === 1 ? 'candidate' : 'candidates'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Progress indicator */}
+                    <div className="hidden sm:block w-24 h-2 bg-aged-brown bg-opacity-20 rounded-full overflow-hidden">
+                      <div
+                        className={`${stage.color} h-2 rounded-full transition-all duration-500`}
+                        style={{
+                          width: `${candidates.length > 0 ? (stageCandidates.length / candidates.length) * 100 : 0}%`
+                        }}
+                      />
+                    </div>
+                    {/* Expand/Collapse Icon */}
+                    {isExpanded ? (
+                      <ChevronDown className="h-6 w-6 text-castle-stone transition-transform duration-200" />
+                    ) : (
+                      <ChevronRight className="h-6 w-6 text-castle-stone transition-transform duration-200" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Collapsible Content */}
+                {isExpanded && (
+                  <SortableContext
+                    id={stage.id}
+                    items={stageCandidates.map(c => c.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="border-t-2 border-aged-brown bg-parchment-dark">
                       {stageCandidates.length === 0 ? (
-                        <div className="text-center py-8 text-aged-brown font-body italic">
-                          No warriors in this rank
+                        <div className="p-8 text-center">
+                          <User className="h-12 w-12 mx-auto text-aged-brown mb-3 opacity-50" />
+                          <p className="font-body text-aged-brown">No candidates in this stage</p>
                         </div>
                       ) : (
-                        stageCandidates.map((candidate) => (
-                          <SortableCandidateCard key={candidate.id} candidate={candidate} />
-                        ))
+                        <div className="p-4 space-y-2">
+                          {stageCandidates.map((candidate) => (
+                            <SortableCandidateCard key={candidate.id} candidate={candidate} />
+                          ))}
+                        </div>
                       )}
                     </div>
-                  </div>
-                </SortableContext>
-              );
-            })}
-          </div>
+                  </SortableContext>
+                )}
+              </ParchmentCard>
+            );
+          })}
+        </div>
 
-          <DragOverlay>
-            {activeCandidate ? (
-              <div className="parchment-card p-4 cursor-grabbing shadow-lg rotate-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blood-red rounded-full flex items-center justify-center shadow-wax-seal">
-                    <User className="w-5 h-5 text-gold" />
-                  </div>
-                  <div>
-                    <h4 className="font-medieval font-bold text-castle-stone">
-                      {activeCandidate.name}
-                    </h4>
-                    <p className="text-sm font-body text-aged-brown">
-                      {activeCandidate.email}
-                    </p>
-                  </div>
+        <DragOverlay>
+          {activeCandidate ? (
+            <div className="bg-white rounded-lg border-2 border-gold p-3 cursor-grabbing shadow-2xl rotate-2 scale-105">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-royal-purple to-royal-purple-dark rounded-full flex items-center justify-center shadow-sm">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-medieval font-semibold text-castle-stone text-sm">
+                    {activeCandidate.name}
+                  </h4>
+                  <p className="text-xs font-body text-aged-brown">
+                    {activeCandidate.email}
+                  </p>
                 </div>
               </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 };
