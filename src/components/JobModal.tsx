@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Job } from '../database';
+import { ScrollModal, Input, WaxSealButton } from './ui';
 
 interface JobModalProps {
   job?: Job | null;
@@ -133,170 +134,139 @@ const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+    <ScrollModal
+      isOpen={true}
+      onClose={onClose}
+      title={job ? '⚔️ Edit Quest' : '📜 Post New Quest'}
+      size="lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <Input
+            label="Quest Title *"
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            placeholder="e.g. Elite Castle Guard"
+            error={errors.title}
+          />
+        </div>
 
-        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-          <form onSubmit={handleSubmit}>
-            <div className="bg-white px-6 pt-6 pb-4 sm:p-8 sm:pb-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    {job ? 'Edit Job' : 'Create New Job'}
-                  </h3>
-                  <p className="text-gray-600 mt-1">
-                    {job ? 'Update job details and requirements' : 'Add a new job posting to your board'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition-all duration-200"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
+        <div>
+          <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+            Quest Description
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            rows={4}
+            className="w-full px-4 py-2 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold"
+            placeholder="Describe the quest and duties..."
+          />
+        </div>
 
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Job Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 ${
-                      errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    placeholder="e.g. Senior Frontend Developer"
-                  />
-                  {errors.title && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center">
-                      <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                      {errors.title}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={4}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter job description"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Requirements *
-                  </label>
-                  <div className="mt-1 space-y-2">
-                    {formData.requirements.map((req, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={req}
-                          onChange={(e) => updateRequirement(index, e.target.value)}
-                          className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Enter requirement"
-                        />
-                        {formData.requirements.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeRequirement(index)}
-                            className="p-2 text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addRequirement}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Requirement
-                    </button>
-                  </div>
-                  {errors.requirements && (
-                    <p className="mt-1 text-sm text-red-600">{errors.requirements}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tags *
-                  </label>
-                  <div className="mt-1 space-y-2">
-                    {formData.tags.map((tag, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={tag}
-                          onChange={(e) => updateTag(index, e.target.value)}
-                          className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Enter tag"
-                        />
-                        {formData.tags.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeTag(index)}
-                            className="p-2 text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addTag}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Tag
-                    </button>
-                  </div>
-                  {errors.tags && (
-                    <p className="mt-1 text-sm text-red-600">{errors.tags}</p>
-                  )}
-                </div>
-
-                {errors.submit && (
-                  <div className="text-sm text-red-600">{errors.submit}</div>
+        <div>
+          <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+            Requirements *
+          </label>
+          <div className="space-y-2">
+            {formData.requirements.map((req, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={req}
+                  onChange={(e) => updateRequirement(index, e.target.value)}
+                  className="flex-1 px-4 py-2 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold"
+                  placeholder="Enter requirement"
+                />
+                {formData.requirements.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeRequirement(index)}
+                    className="p-2 text-blood-red hover:bg-blood-red hover:text-parchment rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 )}
               </div>
-            </div>
-
-            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : (job ? 'Update Job' : 'Create Job')}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+            ))}
+            <button
+              type="button"
+              onClick={addRequirement}
+              className="inline-flex items-center px-3 py-2 font-medieval text-sm text-castle-stone bg-parchment-dark border-2 border-aged-brown rounded-md hover:bg-aged-brown hover:text-parchment transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Requirement
+            </button>
+          </div>
+          {errors.requirements && (
+            <p className="mt-1 text-sm text-blood-red font-body">{errors.requirements}</p>
+          )}
         </div>
-      </div>
-    </div>
+
+        <div>
+          <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+            Skills & Tags *
+          </label>
+          <div className="space-y-2">
+            {formData.tags.map((tag, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={tag}
+                  onChange={(e) => updateTag(index, e.target.value)}
+                  className="flex-1 px-4 py-2 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold"
+                  placeholder="e.g. Swordsmanship"
+                />
+                {formData.tags.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeTag(index)}
+                    className="p-2 text-blood-red hover:bg-blood-red hover:text-parchment rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addTag}
+              className="inline-flex items-center px-3 py-2 font-medieval text-sm text-castle-stone bg-parchment-dark border-2 border-aged-brown rounded-md hover:bg-aged-brown hover:text-parchment transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Skill Tag
+            </button>
+          </div>
+          {errors.tags && (
+            <p className="mt-1 text-sm text-blood-red font-body">{errors.tags}</p>
+          )}
+        </div>
+
+        {errors.submit && (
+          <div className="parchment-card p-4 border-2 border-blood-red">
+            <p className="text-sm text-blood-red font-body">{errors.submit}</p>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-4 border-t-2 border-aged-brown">
+          <WaxSealButton
+            type="button"
+            onClick={onClose}
+            variant="gold"
+          >
+            Cancel
+          </WaxSealButton>
+          <WaxSealButton
+            type="submit"
+            disabled={loading}
+            variant="primary"
+          >
+            {loading ? '⏳ Saving...' : (job ? '✓ Update Quest' : '✓ Post Quest')}
+          </WaxSealButton>
+        </div>
+      </form>
+    </ScrollModal>
   );
 };
 

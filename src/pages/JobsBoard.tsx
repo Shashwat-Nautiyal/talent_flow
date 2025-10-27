@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Archive, ArchiveRestore, Edit, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Search, Archive, ArchiveRestore, Edit, Trash2, GripVertical, Scroll } from 'lucide-react';
 import { Job } from '../database';
 import JobModal from '../components/JobModal';
+import { ParchmentCard, WaxSealButton, TorchLoader, Badge, Input, Select } from '../components/ui';
 
 interface JobsResponse {
   data: Job[];
@@ -130,59 +131,60 @@ const JobsBoard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Jobs Board</h1>
-          <p className="text-gray-600 mt-1">Manage and organize your job postings</p>
+          <h1 className="text-4xl font-medieval font-bold text-castle-stone text-shadow-gold mb-2">
+            📜 Quest Board
+          </h1>
+          <p className="text-lg font-body text-aged-brown-dark">Manage and organize your military campaigns</p>
         </div>
-        <button
-          onClick={handleCreateJob}
-          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105 transition-all duration-200"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Create Job
-        </button>
+        <WaxSealButton variant="primary" onClick={handleCreateJob}>
+          <span className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Post New Quest
+          </span>
+        </WaxSealButton>
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+      <ParchmentCard className="p-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search jobs by title or tags..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 pr-4 py-3 w-full border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-              />
-            </div>
+            <Input
+              type="text"
+              placeholder="Search quests by title or skills..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              icon={<Search className="h-5 w-5" />}
+            />
           </div>
           <div className="sm:w-48">
-            <select
+            <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-            >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </select>
+              options={[
+                { value: '', label: 'All Status' },
+                { value: 'active', label: 'Active Quests' },
+                { value: 'archived', label: 'Ancient Scrolls' }
+              ]}
+            />
           </div>
         </div>
-      </div>
+      </ParchmentCard>
 
       {/* Jobs List */}
-      <div className="bg-white shadow-xl rounded-xl border border-gray-100 overflow-hidden">
+      <ParchmentCard className="p-4">
         {loading ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600 font-medium">Loading jobs...</p>
+          <TorchLoader size="lg" text="Loading quests from the archives..." />
+        ) : jobs.length === 0 ? (
+          <div className="text-center py-12">
+            <Scroll className="h-16 w-16 mx-auto text-aged-brown mb-4" />
+            <p className="text-xl font-medieval text-castle-stone mb-2">No Quests Found</p>
+            <p className="font-body text-aged-brown">Create your first quest to begin recruiting warriors</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="space-y-3">
             {jobs.map((job) => (
               <div
                 key={job.id}
@@ -190,66 +192,68 @@ const JobsBoard: React.FC = () => {
                 onDragStart={(e) => handleDragStart(e, job)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, job)}
-                className="p-6 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 cursor-move transition-all duration-200 group"
+                className="parchment-card p-5 cursor-move hover:shadow-embossed transition-all duration-200 group border-2 border-aged-brown"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <GripVertical className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
+                  <div className="flex items-center space-x-4 flex-1">
+                    <GripVertical className="h-6 w-6 text-aged-brown group-hover:text-gold transition-colors flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 mb-2 flex-wrap gap-2">
                         <Link
                           to={`/jobs/${job.id}`}
-                          className="text-xl font-semibold text-gray-900 hover:text-indigo-600 transition-colors"
+                          className="text-xl font-medieval font-bold text-castle-stone hover:text-royal-purple transition-colors"
                         >
                           {job.title}
                         </Link>
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            job.status === 'active'
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                              : 'bg-gray-100 text-gray-800 border border-gray-200'
-                          }`}
+                        <Badge
+                          variant={job.status === 'active' ? 'active' : 'archived'}
+                          icon={job.status === 'active' ? '⚔️' : '📚'}
                         >
-                          {job.status}
-                        </span>
+                          {job.status === 'active' ? 'Active Campaign' : 'Archived'}
+                        </Badge>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {job.tags.map((tag, index) => (
+                        {job.tags.slice(0, 5).map((tag, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200"
+                            className="inline-flex items-center px-2 py-1 rounded text-xs font-body bg-gold-light text-castle-stone border border-gold"
                           >
                             {tag}
                           </span>
                         ))}
+                        {job.tags.length > 5 && (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-body text-aged-brown">
+                            +{job.tags.length - 5} more
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
                     <button
                       onClick={() => handleEditJob(job)}
-                      className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200"
-                      title="Edit job"
+                      className="p-2 text-castle-stone hover:text-royal-purple hover:bg-parchment-dark rounded-lg transition-all duration-200"
+                      title="Edit quest"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleArchiveJob(job)}
-                      className="p-3 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all duration-200"
-                      title={job.status === 'active' ? 'Archive job' : 'Unarchive job'}
+                      className="p-2 text-castle-stone hover:text-gold hover:bg-parchment-dark rounded-lg transition-all duration-200"
+                      title={job.status === 'active' ? 'Archive quest' : 'Restore quest'}
                     >
                       {job.status === 'active' ? (
-                        <Archive className="h-4 w-4" />
+                        <Archive className="h-5 w-5" />
                       ) : (
-                        <ArchiveRestore className="h-4 w-4" />
+                        <ArchiveRestore className="h-5 w-5" />
                       )}
                     </button>
                     <button
                       onClick={() => handleDeleteJob(job)}
-                      className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-                      title="Delete job"
+                      className="p-2 text-castle-stone hover:text-blood-red hover:bg-parchment-dark rounded-lg transition-all duration-200"
+                      title="Delete quest"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
@@ -260,52 +264,50 @@ const JobsBoard: React.FC = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="mt-6 pt-6 border-t-2 border-aged-brown flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
-              <button
+              <WaxSealButton
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                variant="gold"
               >
                 Previous
-              </button>
-              <button
+              </WaxSealButton>
+              <WaxSealButton
                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                variant="gold"
               >
                 Next
-              </button>
+              </WaxSealButton>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm text-gray-700">
-                  Page <span className="font-medium">{page}</span> of{' '}
-                  <span className="font-medium">{totalPages}</span>
+                <p className="text-sm font-body text-castle-stone">
+                  Scroll <span className="font-medieval font-bold">{page}</span> of{' '}
+                  <span className="font-medieval font-bold">{totalPages}</span>
                 </p>
               </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => setPage(Math.max(1, page - 1))}
-                    disabled={page === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
-                    disabled={page === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </nav>
+              <div className="flex gap-2">
+                <WaxSealButton
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  variant="gold"
+                >
+                  Previous
+                </WaxSealButton>
+                <WaxSealButton
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  variant="gold"
+                >
+                  Next
+                </WaxSealButton>
               </div>
             </div>
           </div>
         )}
-      </div>
+      </ParchmentCard>
 
       {showModal && (
         <JobModal
