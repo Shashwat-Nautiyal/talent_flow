@@ -1,15 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Calendar, MessageSquare, Edit } from 'lucide-react';
-import { Candidate, CandidateTimeline } from '../database';
+import { ArrowLeft, User, Mail, Calendar, MessageSquare, Edit, Phone, FileText, ExternalLink, MapPin, Briefcase, GraduationCap, Award } from 'lucide-react';
+import { Candidate, CandidateTimeline, db } from '../database';
+import { ParchmentCard, WaxSealButton, TorchLoader, Badge, Input, ScrollModal } from '../components/ui';
+import { MentionTextarea } from '../components/MentionTextarea';
+import { MentionRenderer } from '../components/MentionRenderer';
 
 const CandidateDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [timeline, setTimeline] = useState<CandidateTimeline[]>([]);
+  const [assessmentResponses, setAssessmentResponses] = useState<any[]>([]);
+  const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [notes, setNotes] = useState('');
+  const [allCandidates, setAllCandidates] = useState<Array<{ id: string; name: string }>>([]);
+  const [editProfile, setEditProfile] = useState({
+    phone: '',
+    linkedin: '',
+    portfolio: '',
+    experience: '',
+    skills: [] as string[],
+    education: '',
+    location: ''
+  });
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -23,6 +39,15 @@ const CandidateDetail: React.FC = () => {
           const candidateData = await candidateResponse.json();
           setCandidate(candidateData);
           setNotes(candidateData.notes || '');
+          setEditProfile({
+            phone: candidateData.phone || '',
+            linkedin: candidateData.linkedin || '',
+            portfolio: candidateData.portfolio || '',
+            experience: candidateData.experience || '',
+            skills: candidateData.skills || [],
+            education: candidateData.education || '',
+            location: candidateData.location || ''
+          });
         }
 
         if (timelineResponse.ok) {
@@ -36,8 +61,42 @@ const CandidateDetail: React.FC = () => {
       }
     };
 
+    // Fetch all candidates for @mentions
+    const fetchAllCandidates = async () => {
+      try {
+        const all = await db.candidates.toArray();
+        setAllCandidates(all.map(c => ({ id: c.id, name: c.name })));
+      } catch (error) {
+        console.error('Failed to fetch candidates for mentions:', error);
+      }
+    };
+
+    // Fetch assessment responses for this candidate
+    const fetchAssessmentResponses = async () => {
+      if (!id) return;
+      try {
+        const responses = await db.assessmentResponses
+          .where('candidateId')
+          .equals(id)
+          .toArray();
+        setAssessmentResponses(responses);
+
+        // Fetch assessments for each response
+        const assessmentIds = responses.map(r => r.assessmentId);
+        const allAssessments = await db.assessments
+          .where('id')
+          .anyOf(assessmentIds)
+          .toArray();
+        setAssessments(allAssessments);
+      } catch (error) {
+        console.error('Failed to fetch assessment responses:', error);
+      }
+    };
+
     if (id) {
       fetchCandidate();
+      fetchAllCandidates();
+      fetchAssessmentResponses();
     }
   }, [id]);
 
@@ -88,245 +147,442 @@ const CandidateDetail: React.FC = () => {
     }
   };
 
-  const getStageColor = (stage: Candidate['stage']) => {
-    switch (stage) {
-      case 'applied': return 'bg-blue-100 text-blue-800';
-      case 'screen': return 'bg-yellow-100 text-yellow-800';
-      case 'tech': return 'bg-purple-100 text-purple-800';
-      case 'offer': return 'bg-green-100 text-green-800';
-      case 'hired': return 'bg-emerald-100 text-emerald-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleSaveProfile = async () => {
+    if (!candidate) return;
+
+    try {
+      await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editProfile)
+      });
+
+      setCandidate(prev => prev ? { ...prev, ...editProfile } : null);
+      setShowEditProfileModal(false);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
     }
   };
 
   const stages: Candidate['stage'][] = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
 
+  const getStageInfo = (stage: Candidate['stage']) => {
+    switch (stage) {
+      case 'applied': return { variant: 'default' as const, label: 'Applied', icon: '📝' };
+      case 'screen': return { variant: 'default' as const, label: 'Screening', icon: '👀' };
+      case 'tech': return { variant: 'default' as const, label: 'Interview', icon: '💬' };
+      case 'offer': return { variant: 'default' as const, label: 'Offer', icon: '📜' };
+      case 'hired': return { variant: 'active' as const, label: 'Hired', icon: '✓' };
+      case 'rejected': return { variant: 'archived' as const, label: 'Rejected', icon: '✗' };
+      default: return { variant: 'default' as const, label: stage, icon: '•' };
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <TorchLoader size="lg" text="Loading warrior profile..." />
       </div>
     );
   }
 
   if (!candidate) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Candidate not found</h2>
-        <p className="mt-2 text-gray-600">The candidate you're looking for doesn't exist.</p>
-        <Link
-          to="/candidates"
-          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Candidates
-        </Link>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <ParchmentCard className="p-12 text-center">
+          <User className="h-16 w-16 mx-auto text-aged-brown mb-4" />
+          <h2 className="text-2xl sm:text-3xl font-medieval font-bold text-castle-stone mb-2">
+            Warrior Not Found
+          </h2>
+          <p className="font-body text-aged-brown-dark mb-6">
+            The warrior you're looking for doesn't exist or has been removed from the archives.
+          </p>
+          <Link to="/candidates">
+            <WaxSealButton variant="gold">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Candidates
+            </WaxSealButton>
+          </Link>
+        </ParchmentCard>
       </div>
     );
   }
 
+  const stageInfo = getStageInfo(candidate.stage);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-4">
           <Link
             to="/candidates"
-            className="inline-flex items-center text-gray-600 hover:text-gray-900"
+            className="inline-flex items-center text-aged-brown hover:text-castle-stone font-medieval font-semibold transition-colors"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             Back to Candidates
           </Link>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowNotesModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
+        <div className="flex items-center gap-3 flex-wrap">
+          <WaxSealButton variant="gold" onClick={() => setShowEditProfileModal(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Profile
+          </WaxSealButton>
+          <WaxSealButton variant="primary" onClick={() => setShowNotesModal(true)}>
             <MessageSquare className="h-4 w-4 mr-2" />
             Add Notes
-          </button>
+          </WaxSealButton>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Candidate Info */}
-        <div className="lg:col-span-1">
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center space-x-4">
-                <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <User className="h-8 w-8 text-indigo-600" />
+        {/* Candidate Profile */}
+        <div className="lg:col-span-1 space-y-6">
+          <ParchmentCard className="p-6">
+            <div className="flex items-center space-x-4 mb-6 pb-6 border-b-2 border-aged-brown">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-royal-purple to-royal-purple-dark flex items-center justify-center shadow-lg">
+                <User className="h-10 w-10 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-2xl font-medieval font-bold text-castle-stone mb-2">
+                  {candidate.name}
+                </h1>
+                <Badge variant={stageInfo.variant} icon={stageInfo.icon}>
+                  {stageInfo.label}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center text-sm font-body text-aged-brown">
+                <Mail className="h-4 w-4 mr-3 text-royal-purple" />
+                <span className="break-all">{candidate.email}</span>
+              </div>
+              
+              {candidate.phone && (
+                <div className="flex items-center text-sm font-body text-aged-brown">
+                  <Phone className="h-4 w-4 mr-3 text-royal-purple" />
+                  <span>{candidate.phone}</span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">{candidate.name}</h1>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStageColor(candidate.stage)}`}>
-                    {candidate.stage}
+              )}
+              
+              {candidate.location && (
+                <div className="flex items-center text-sm font-body text-aged-brown">
+                  <MapPin className="h-4 w-4 mr-3 text-royal-purple" />
+                  <span>{candidate.location}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center text-sm font-body text-aged-brown">
+                <Calendar className="h-4 w-4 mr-3 text-royal-purple" />
+                <span>Applied {new Date(candidate.appliedAt).toLocaleDateString()}</span>
+              </div>
+              
+              <div className="flex items-center text-sm font-body text-aged-brown">
+                <Calendar className="h-4 w-4 mr-3 text-royal-purple" />
+                <span>Updated {new Date(candidate.updatedAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </ParchmentCard>
+
+          {/* Contact & Links */}
+          {(candidate.linkedin || candidate.portfolio || candidate.resume) && (
+            <ParchmentCard className="p-6">
+              <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4 flex items-center">
+                <ExternalLink className="h-5 w-5 mr-2 text-gold" />
+                Social & Portfolio
+              </h3>
+              <div className="space-y-3">
+                {candidate.linkedin && (
+                  <a
+                    href={candidate.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-sm font-body text-royal-purple hover:text-royal-purple-dark transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-3" />
+                    LinkedIn Profile
+                  </a>
+                )}
+                
+                {candidate.portfolio && (
+                  <a
+                    href={candidate.portfolio}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-sm font-body text-royal-purple hover:text-royal-purple-dark transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-3" />
+                    Portfolio Website
+                  </a>
+                )}
+                
+                {candidate.resume && (
+                  <a
+                    href={candidate.resume}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-sm font-body text-royal-purple hover:text-royal-purple-dark transition-colors"
+                  >
+                    <FileText className="h-4 w-4 mr-3" />
+                    View Resume
+                  </a>
+                )}
+              </div>
+            </ParchmentCard>
+          )}
+
+          {/* Skills */}
+          {candidate.skills && candidate.skills.length > 0 && (
+            <ParchmentCard className="p-6">
+              <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4 flex items-center">
+                <Award className="h-5 w-5 mr-2 text-gold" />
+                Skills & Abilities
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {candidate.skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-body bg-gold-light text-castle-stone border-2 border-gold shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    {skill}
                   </span>
-                </div>
+                ))}
               </div>
-            </div>
+            </ParchmentCard>
+          )}
 
-            <div className="px-6 py-4 space-y-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <Mail className="h-4 w-4 mr-3" />
-                {candidate.email}
+          {/* Experience & Education */}
+          {(candidate.experience || candidate.education) && (
+            <ParchmentCard className="p-6">
+              <div className="space-y-4">
+                {candidate.experience && (
+                  <div>
+                    <h3 className="text-lg font-medieval font-bold text-castle-stone mb-2 flex items-center">
+                      <Briefcase className="h-5 w-5 mr-2 text-gold" />
+                      Experience
+                    </h3>
+                    <p className="text-sm font-body text-aged-brown">{candidate.experience}</p>
+                  </div>
+                )}
+                
+                {candidate.education && (
+                  <div>
+                    <h3 className="text-lg font-medieval font-bold text-castle-stone mb-2 flex items-center">
+                      <GraduationCap className="h-5 w-5 mr-2 text-gold" />
+                      Education
+                    </h3>
+                    <p className="text-sm font-body text-aged-brown">{candidate.education}</p>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <Calendar className="h-4 w-4 mr-3" />
-                Applied {new Date(candidate.appliedAt).toLocaleDateString()}
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <Calendar className="h-4 w-4 mr-3" />
-                Updated {new Date(candidate.updatedAt).toLocaleDateString()}
-              </div>
-            </div>
+            </ParchmentCard>
+          )}
 
-            {/* Stage Actions */}
-            <div className="px-6 py-4 border-t border-gray-200">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Move to Stage</h3>
-              <div className="space-y-2">
-                {stages.map(stage => (
+          {/* Stage Actions */}
+          <ParchmentCard className="p-6">
+            <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4">
+              🛡️ Move to Stage
+            </h3>
+            <div className="space-y-2">
+              {stages.map(stage => {
+                const stageInfo = getStageInfo(stage);
+                return (
                   <button
                     key={stage}
                     onClick={() => handleStageChange(stage)}
                     disabled={candidate.stage === stage}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`w-full text-left px-4 py-3 rounded-lg font-medieval font-semibold transition-all duration-200 ${
                       candidate.stage === stage
-                        ? 'bg-indigo-100 text-indigo-800 cursor-not-allowed'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-gold text-castle-stone cursor-not-allowed shadow-md'
+                        : 'bg-parchment-dark text-castle-stone hover:bg-aged-brown hover:text-parchment hover:shadow-md border-2 border-aged-brown'
                     }`}
                   >
-                    {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                    <span className="mr-2">{stageInfo.icon}</span>
+                    {stageInfo.label}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </ParchmentCard>
 
-            {/* Notes */}
-            {candidate.notes && (
-              <div className="px-6 py-4 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Notes</h3>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">{candidate.notes}</p>
+          {/* Notes */}
+          {candidate.notes && (
+            <ParchmentCard className="p-6">
+              <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4">
+                📝 Commander's Notes
+              </h3>
+              <div className="font-body text-castle-stone whitespace-pre-wrap bg-parchment-dark p-4 rounded-lg border border-aged-brown">
+                <MentionRenderer text={candidate.notes} candidates={allCandidates} />
               </div>
-            )}
-          </div>
+            </ParchmentCard>
+          )}
+
+          {/* Assessment Responses */}
+          {assessmentResponses.length > 0 && (
+            <ParchmentCard className="p-6">
+              <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4 flex items-center">
+                <FileText className="h-5 w-5 mr-2 text-gold" />
+                Assessment Responses
+              </h3>
+              <div className="space-y-4">
+                {assessmentResponses.map((response) => {
+                  const assessment = assessments.find(a => a.id === response.assessmentId);
+                  return (
+                    <div
+                      key={response.id}
+                      className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-4 hover:border-gold transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medieval font-semibold text-castle-stone">
+                          {assessment?.title || 'Assessment'}
+                        </h4>
+                        <Badge variant="default" icon="✓">
+                          Submitted
+                        </Badge>
+                      </div>
+                      <p className="text-xs font-body text-aged-brown mb-3">
+                        Submitted on {new Date(response.submittedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                      {assessment && (
+                        <Link to={`/jobs/${assessment.jobId}`}>
+                          <span className="text-sm font-body text-royal-purple hover:text-royal-purple-dark transition-colors">
+                            View Job →
+                          </span>
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </ParchmentCard>
+          )}
         </div>
 
         {/* Timeline */}
         <div className="lg:col-span-2">
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Timeline</h2>
+          <ParchmentCard className="p-6 sm:p-8">
+            <div className="border-b-2 border-aged-brown pb-4 mb-6">
+              <h2 className="text-2xl font-medieval font-bold text-castle-stone">
+                📜 Warrior's Journey
+              </h2>
+              <p className="text-sm font-body text-aged-brown mt-2">
+                Timeline of the warrior's progression through the recruitment quest
+              </p>
             </div>
             <div className="px-6 py-4">
               {timeline.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No timeline events</h3>
-                  <p className="text-gray-500">Timeline events will appear here as the candidate progresses.</p>
+                <div className="text-center py-12">
+                  <Calendar className="h-16 w-16 mx-auto text-aged-brown mb-4" />
+                  <h3 className="text-xl font-medieval font-bold text-castle-stone mb-2">
+                    No Journey Events
+                  </h3>
+                  <p className="font-body text-aged-brown">
+                    Timeline events will appear here as the warrior progresses through the stages.
+                  </p>
                 </div>
               ) : (
                 <div className="flow-root">
-                  <ul className="-mb-8">
+                  <ul className="space-y-6">
                     {timeline
                       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-                      .map((event, eventIdx) => (
-                        <li key={event.id}>
-                          <div className="relative pb-8">
-                            {eventIdx !== timeline.length - 1 ? (
-                              <span
-                                className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                                aria-hidden="true"
-                              />
-                            ) : null}
-                            <div className="relative flex space-x-3">
-                              <div>
-                                <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
-                                  event.stage === 'hired' ? 'bg-green-500' :
-                                  event.stage === 'rejected' ? 'bg-red-500' :
-                                  'bg-indigo-500'
+                      .map((event, eventIdx) => {
+                        const eventStageInfo = getStageInfo(event.stage as Candidate['stage']);
+                        return (
+                          <li key={event.id}>
+                            <div className="relative flex items-start gap-4">
+                              {eventIdx !== timeline.length - 1 && (
+                                <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-aged-brown opacity-30" />
+                              )}
+                              <div className="flex-shrink-0">
+                                <div className={`h-12 w-12 rounded-full flex items-center justify-center shadow-lg border-2 border-aged-brown ${
+                                  event.stage === 'hired' ? 'bg-forest-green' :
+                                  event.stage === 'rejected' ? 'bg-blood-red' :
+                                  'bg-royal-purple'
                                 }`}>
-                                  <Calendar className="h-4 w-4 text-white" />
-                                </span>
-                              </div>
-                              <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                <div>
-                                  <p className="text-sm text-gray-500">
-                                    Moved to <span className="font-medium text-gray-900 capitalize">{event.stage}</span>
-                                  </p>
-                                  {event.note && (
-                                    <p className="mt-1 text-sm text-gray-600">{event.note}</p>
-                                  )}
+                                  <span className="text-2xl">{eventStageInfo.icon}</span>
                                 </div>
-                                <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                                  <time dateTime={new Date(event.timestamp).toISOString()}>
-                                    {new Date(event.timestamp).toLocaleDateString()}
-                                  </time>
+                              </div>
+                              <div className="flex-1 min-w-0 pb-6">
+                                <div className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-4 hover:border-gold transition-colors">
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div>
+                                      <p className="text-base font-medieval font-bold text-castle-stone mb-1">
+                                        Moved to {eventStageInfo.label}
+                                      </p>
+                                      {event.note && (
+                                        <p className="text-sm font-body text-aged-brown mt-2">
+                                          {event.note}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center text-xs font-body text-aged-brown mt-3 pt-3 border-t border-aged-brown">
+                                    <Calendar className="h-3 w-3 mr-2" />
+                                    <time dateTime={new Date(event.timestamp).toISOString()}>
+                                      {new Date(event.timestamp).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </time>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        </li>
-                      ))}
+                          </li>
+                        );
+                      })}
                   </ul>
                 </div>
               )}
             </div>
-          </div>
+          </ParchmentCard>
         </div>
       </div>
 
       {/* Notes Modal */}
       {showNotesModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowNotesModal(false)} />
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Add Notes</h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowNotesModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <Edit className="h-6 w-6" />
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={6}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Add notes about this candidate..."
-                  />
-                </div>
-              </div>
-
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  onClick={handleSaveNotes}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Save Notes
-                </button>
-                <button
-                  onClick={() => setShowNotesModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
+        <ScrollModal
+          isOpen={true}
+          onClose={() => setShowNotesModal(false)}
+          title="📝 Add Commander's Notes"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                Notes about this warrior
+              </label>
+              <p className="text-xs font-body text-aged-brown mb-2">
+                💡 Type <span className="font-semibold text-gold">@</span> to mention other candidates
+              </p>
+              <MentionTextarea
+                value={notes}
+                onChange={setNotes}
+                rows={8}
+                placeholder="Add notes about this candidate... Type @ to mention others"
+                candidates={allCandidates.filter(c => c.id !== candidate?.id)}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t-2 border-aged-brown">
+              <WaxSealButton variant="gold" onClick={() => setShowNotesModal(false)}>
+                Cancel
+              </WaxSealButton>
+              <WaxSealButton variant="primary" onClick={handleSaveNotes}>
+                Save Notes
+              </WaxSealButton>
             </div>
           </div>
-        </div>
+        </ScrollModal>
       )}
     </div>
   );

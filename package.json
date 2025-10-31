@@ -59,6 +59,7 @@
     ]
   },
   "devDependencies": {
+    "@types/react-window": "^1.8.8",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6"
   },

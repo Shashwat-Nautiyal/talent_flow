@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Eye, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Eye, Save, FileText, Settings } from 'lucide-react';
 import { Assessment, AssessmentSection, AssessmentQuestion } from '../database';
+import { ParchmentCard, WaxSealButton, TorchLoader, Input, Badge } from '../components/ui';
 
 const AssessmentBuilder: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -9,6 +10,7 @@ const AssessmentBuilder: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     const fetchAssessment = async () => {
@@ -16,13 +18,25 @@ const AssessmentBuilder: React.FC = () => {
         const response = await fetch(`/api/assessments/${jobId}`);
         if (response.ok) {
           const data = await response.json();
-          setAssessment(data);
+          // If no assessment exists (data is null), create a new one
+          if (!data || data === null) {
+            setAssessment({
+              id: crypto.randomUUID(),
+              jobId: jobId!,
+              title: 'Training Trial Assessment',
+              sections: [],
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          } else {
+            setAssessment(data);
+          }
         } else {
-          // Create new assessment if none exists
+          // Create new assessment if request failed
           setAssessment({
             id: crypto.randomUUID(),
             jobId: jobId!,
-            title: 'Assessment',
+            title: 'Training Trial Assessment',
             sections: [],
             createdAt: new Date(),
             updatedAt: new Date()
@@ -30,6 +44,15 @@ const AssessmentBuilder: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch assessment:', error);
+        // Create new assessment on error
+        setAssessment({
+          id: crypto.randomUUID(),
+          jobId: jobId!,
+          title: 'Training Trial Assessment',
+          sections: [],
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
       } finally {
         setLoading(false);
       }
@@ -130,12 +153,17 @@ const AssessmentBuilder: React.FC = () => {
     if (!assessment) return;
 
     setSaving(true);
+    setSaveSuccess(false);
     try {
-      await fetch(`/api/assessments/${jobId}`, {
+      const response = await fetch(`/api/assessments/${jobId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(assessment)
       });
+      if (response.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      }
     } catch (error) {
       console.error('Failed to save assessment:', error);
     } finally {
@@ -145,254 +173,280 @@ const AssessmentBuilder: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <TorchLoader size="lg" text="Loading training trial..." />
       </div>
     );
   }
 
+  // Ensure assessment is always set (should never be null after loading)
   if (!assessment) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Assessment not found</h2>
-        <Link
-          to="/jobs"
-          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Jobs
-        </Link>
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <TorchLoader size="lg" text="Initializing assessment builder..." />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-4">
           <Link
             to="/jobs"
-            className="inline-flex items-center text-gray-600 hover:text-gray-900"
+            className="inline-flex items-center text-aged-brown hover:text-castle-stone font-medieval font-semibold transition-colors"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Jobs
+            Back to Quest Board
           </Link>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
+        <div className="flex items-center gap-3 flex-wrap">
+          <WaxSealButton
+            variant="gold"
             onClick={() => setShowPreview(!showPreview)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
             <Eye className="h-4 w-4 mr-2" />
             {showPreview ? 'Hide Preview' : 'Show Preview'}
-          </button>
-          <button
+          </WaxSealButton>
+          <WaxSealButton
+            variant="primary"
             onClick={saveAssessment}
             disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
           >
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Assessment'}
-          </button>
+            {saving ? 'Saving...' : 'Save Trial'}
+          </WaxSealButton>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {saveSuccess && (
+        <ParchmentCard className="p-6 border-2 border-forest-green bg-forest-green bg-opacity-10">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">✓</span>
+            <div>
+              <h3 className="font-medieval font-bold text-forest-green text-lg">Training Trial Saved!</h3>
+              <p className="font-body text-aged-brown">Your assessment has been saved successfully.</p>
+            </div>
+          </div>
+        </ParchmentCard>
+      )}
+
+      <div className={`grid gap-6 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
         {/* Builder */}
         <div className="space-y-6">
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h1 className="text-lg font-medium text-gray-900">Assessment Builder</h1>
+          <ParchmentCard className="p-6 sm:p-8">
+            <div className="border-b-2 border-aged-brown pb-4 mb-6">
+              <h1 className="text-2xl sm:text-3xl font-medieval font-bold text-castle-stone flex items-center">
+                <FileText className="h-6 w-6 mr-3 text-gold" />
+                Training Trial Builder
+              </h1>
+              <p className="font-body text-aged-brown mt-2">
+                Build your assessment with sections and questions
+              </p>
             </div>
-            <div className="px-6 py-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Assessment Title
-                </label>
-                <input
-                  type="text"
-                  value={assessment.title}
-                  onChange={(e) => setAssessment(prev => prev ? { ...prev, title: e.target.value } : null)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
 
-              <div className="space-y-6">
-                {assessment.sections.map((section, sectionIndex) => (
-                  <div key={section.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
+            <div className="mb-6">
+              <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                Trial Title
+              </label>
+              <Input
+                type="text"
+                value={assessment.title}
+                onChange={(e) => setAssessment(prev => prev ? { ...prev, title: e.target.value } : null)}
+                placeholder="Enter assessment title..."
+              />
+            </div>
+
+            <div className="space-y-6">
+              {assessment.sections.map((section, sectionIndex) => (
+                <ParchmentCard key={section.id} className="p-6 border-l-4 border-gold">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1">
                       <input
                         type="text"
                         value={section.title}
                         onChange={(e) => updateSection(section.id, { title: e.target.value })}
-                        className="text-lg font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1"
+                        className="text-xl font-medieval font-bold text-castle-stone bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-gold rounded px-2 py-1 w-full"
+                        placeholder={`Section ${sectionIndex + 1} Title`}
                       />
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => addQuestion(section.id)}
-                          className="p-2 text-indigo-600 hover:text-indigo-800"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => removeSection(section.id)}
-                          className="p-2 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
                     </div>
-
-                    <div className="space-y-4">
-                      {section.questions.map((question, questionIndex) => (
-                        <div key={question.id} className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <span className="text-sm font-medium text-gray-500">
-                                Q{questionIndex + 1}
-                              </span>
-                              <select
-                                value={question.type}
-                                onChange={(e) => updateQuestion(section.id, question.id, { type: e.target.value as any })}
-                                className="text-sm border border-gray-300 rounded px-2 py-1"
-                              >
-                                <option value="short-text">Short Text</option>
-                                <option value="long-text">Long Text</option>
-                                <option value="single-choice">Single Choice</option>
-                                <option value="multi-choice">Multiple Choice</option>
-                                <option value="numeric">Numeric</option>
-                                <option value="file-upload">File Upload</option>
-                              </select>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <label className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={question.required}
-                                  onChange={(e) => updateQuestion(section.id, question.id, { required: e.target.checked })}
-                                  className="mr-2"
-                                />
-                                <span className="text-sm text-gray-600">Required</span>
-                              </label>
-                              <button
-                                onClick={() => removeQuestion(section.id, question.id)}
-                                className="p-1 text-red-600 hover:text-red-800"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <input
-                            type="text"
-                            value={question.question}
-                            onChange={(e) => updateQuestion(section.id, question.id, { question: e.target.value })}
-                            placeholder="Enter question text..."
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          />
-
-                          {(question.type === 'single-choice' || question.type === 'multi-choice') && (
-                            <div className="mt-3">
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Options (one per line)
-                              </label>
-                              <textarea
-                                value={question.options?.join('\n') || ''}
-                                onChange={(e) => updateQuestion(section.id, question.id, { 
-                                  options: e.target.value.split('\n').filter(opt => opt.trim()) 
-                                })}
-                                rows={3}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Option 1&#10;Option 2&#10;Option 3"
-                              />
-                            </div>
-                          )}
-
-                          {question.type === 'numeric' && (
-                            <div className="mt-3 grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Min Value
-                                </label>
-                                <input
-                                  type="number"
-                                  value={question.min || ''}
-                                  onChange={(e) => updateQuestion(section.id, question.id, { min: parseInt(e.target.value) || undefined })}
-                                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Max Value
-                                </label>
-                                <input
-                                  type="number"
-                                  value={question.max || ''}
-                                  onChange={(e) => updateQuestion(section.id, question.id, { max: parseInt(e.target.value) || undefined })}
-                                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {(question.type === 'short-text' || question.type === 'long-text') && (
-                            <div className="mt-3">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Max Length
-                              </label>
-                              <input
-                                type="number"
-                                value={question.maxLength || ''}
-                                onChange={(e) => updateQuestion(section.id, question.id, { maxLength: parseInt(e.target.value) || undefined })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => addQuestion(section.id)}
+                        className="p-2 text-royal-purple hover:text-royal-purple-dark hover:bg-parchment-dark rounded-lg transition-colors"
+                        title="Add Question"
+                      >
+                        <Plus className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => removeSection(section.id)}
+                        className="p-2 text-blood-red hover:text-blood-red-dark hover:bg-parchment-dark rounded-lg transition-colors"
+                        title="Remove Section"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
                     </div>
                   </div>
-                ))}
 
-                <button
-                  onClick={addSection}
-                  className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-600 hover:border-indigo-500 hover:text-indigo-600 transition-colors"
-                >
-                  <Plus className="h-6 w-6 mx-auto mb-2" />
-                  Add Section
-                </button>
-              </div>
+                  <div className="space-y-4 mt-6">
+                    {section.questions.map((question, questionIndex) => (
+                      <div key={question.id} className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-4 sm:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <Badge variant="default" icon="❓">
+                              Q{questionIndex + 1}
+                            </Badge>
+                            <select
+                              value={question.type}
+                              onChange={(e) => updateQuestion(section.id, question.id, { type: e.target.value as any })}
+                              className="px-3 py-1.5 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold text-sm"
+                            >
+                              <option value="short-text">Short Text</option>
+                              <option value="long-text">Long Text</option>
+                              <option value="single-choice">Single Choice</option>
+                              <option value="multi-choice">Multiple Choice</option>
+                              <option value="numeric">Numeric</option>
+                              <option value="file-upload">File Upload</option>
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={question.required}
+                                onChange={(e) => updateQuestion(section.id, question.id, { required: e.target.checked })}
+                                className="mr-2 w-4 h-4 text-gold focus:ring-gold"
+                              />
+                              <span className="text-sm font-body text-castle-stone">Required</span>
+                            </label>
+                            <button
+                              onClick={() => removeQuestion(section.id, question.id)}
+                              className="p-1.5 text-blood-red hover:text-blood-red-dark hover:bg-parchment rounded-lg transition-colors"
+                              title="Remove Question"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <Input
+                          type="text"
+                          value={question.question}
+                          onChange={(e) => updateQuestion(section.id, question.id, { question: e.target.value })}
+                          placeholder="Enter question text..."
+                        />
+
+                        {(question.type === 'single-choice' || question.type === 'multi-choice') && (
+                          <div className="mt-4">
+                            <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                              Options (one per line)
+                            </label>
+                            <textarea
+                              value={question.options?.join('\n') || ''}
+                              onChange={(e) => updateQuestion(section.id, question.id, { 
+                                options: e.target.value.split('\n').filter(opt => opt.trim()) 
+                              })}
+                              rows={4}
+                              className="w-full px-4 py-3 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold"
+                              placeholder="Option 1&#10;Option 2&#10;Option 3"
+                            />
+                          </div>
+                        )}
+
+                        {question.type === 'numeric' && (
+                          <div className="mt-4 grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                                Min Value
+                              </label>
+                              <Input
+                                type="number"
+                                value={question.min?.toString() || ''}
+                                onChange={(e) => updateQuestion(section.id, question.id, { min: parseInt(e.target.value) || undefined })}
+                                placeholder="Min"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                                Max Value
+                              </label>
+                              <Input
+                                type="number"
+                                value={question.max?.toString() || ''}
+                                onChange={(e) => updateQuestion(section.id, question.id, { max: parseInt(e.target.value) || undefined })}
+                                placeholder="Max"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {(question.type === 'short-text' || question.type === 'long-text') && (
+                          <div className="mt-4">
+                            <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                              Max Length
+                            </label>
+                            <Input
+                              type="number"
+                              value={question.maxLength?.toString() || ''}
+                              onChange={(e) => updateQuestion(section.id, question.id, { maxLength: parseInt(e.target.value) || undefined })}
+                              placeholder="Character limit"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ParchmentCard>
+              ))}
+
+              <button
+                onClick={addSection}
+                className="w-full border-2 border-dashed border-aged-brown rounded-lg p-6 text-aged-brown hover:border-gold hover:text-gold hover:bg-parchment-dark transition-all duration-200"
+              >
+                <Plus className="h-8 w-8 mx-auto mb-2" />
+                <span className="font-medieval font-semibold">Add New Section</span>
+              </button>
             </div>
-          </div>
+          </ParchmentCard>
         </div>
 
         {/* Preview */}
         {showPreview && (
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Live Preview</h2>
-            </div>
-            <div className="px-6 py-4">
+          <div className="space-y-6">
+            <ParchmentCard className="p-6 sm:p-8">
+              <div className="border-b-2 border-aged-brown pb-4 mb-6">
+                <h2 className="text-2xl font-medieval font-bold text-castle-stone">
+                  👁️ Live Preview
+                </h2>
+                <p className="font-body text-aged-brown-dark mt-2">
+                  See how warriors will experience this trial
+                </p>
+              </div>
               <div className="space-y-6">
-                <h1 className="text-2xl font-bold text-gray-900">{assessment.title}</h1>
+                <h1 className="text-3xl font-medieval font-bold text-castle-stone border-b-2 border-aged-brown pb-4">
+                  {assessment.title}
+                </h1>
                 
                 {assessment.sections.map((section, sectionIndex) => (
-                  <div key={section.id} className="space-y-4">
-                    <h2 className="text-lg font-medium text-gray-900">{section.title}</h2>
+                  <div key={section.id} className="space-y-4 border-l-4 border-gold pl-4">
+                    <h2 className="text-xl font-medieval font-bold text-castle-stone">
+                      {sectionIndex + 1}. {section.title}
+                    </h2>
                     
                     {section.questions.map((question, questionIndex) => (
-                      <div key={question.id} className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">
+                      <div key={question.id} className="space-y-2 bg-parchment-dark p-4 rounded-lg border border-aged-brown">
+                        <label className="block text-base font-medieval font-semibold text-castle-stone">
                           {question.question}
-                          {question.required && <span className="text-red-500 ml-1">*</span>}
+                          {question.required && <span className="text-blood-red ml-1">*</span>}
                         </label>
                         
                         {question.type === 'short-text' && (
-                          <input
+                          <Input
                             type="text"
                             disabled
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
                             placeholder="Your answer..."
+                            className="bg-parchment"
                           />
                         )}
                         
@@ -400,7 +454,7 @@ const AssessmentBuilder: React.FC = () => {
                           <textarea
                             disabled
                             rows={4}
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+                            className="w-full px-4 py-2 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone"
                             placeholder="Your answer..."
                           />
                         )}
@@ -408,13 +462,13 @@ const AssessmentBuilder: React.FC = () => {
                         {question.type === 'single-choice' && question.options && (
                           <div className="space-y-2">
                             {question.options.map((option, optionIndex) => (
-                              <label key={optionIndex} className="flex items-center">
+                              <label key={optionIndex} className="flex items-center cursor-pointer">
                                 <input
                                   type="radio"
                                   disabled
-                                  className="mr-2"
+                                  className="mr-3 w-4 h-4 text-gold"
                                 />
-                                <span className="text-sm text-gray-700">{option}</span>
+                                <span className="font-body text-castle-stone">{option}</span>
                               </label>
                             ))}
                           </div>
@@ -423,40 +477,47 @@ const AssessmentBuilder: React.FC = () => {
                         {question.type === 'multi-choice' && question.options && (
                           <div className="space-y-2">
                             {question.options.map((option, optionIndex) => (
-                              <label key={optionIndex} className="flex items-center">
+                              <label key={optionIndex} className="flex items-center cursor-pointer">
                                 <input
                                   type="checkbox"
                                   disabled
-                                  className="mr-2"
+                                  className="mr-3 w-4 h-4 text-gold"
                                 />
-                                <span className="text-sm text-gray-700">{option}</span>
+                                <span className="font-body text-castle-stone">{option}</span>
                               </label>
                             ))}
                           </div>
                         )}
                         
                         {question.type === 'numeric' && (
-                          <input
+                          <Input
                             type="number"
                             disabled
                             min={question.min}
                             max={question.max}
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
-                            placeholder="Enter number..."
+                            placeholder={`Enter number${question.min !== undefined || question.max !== undefined ? ` (${question.min ?? 'any'} - ${question.max ?? 'any'})` : ''}`}
+                            className="bg-parchment"
                           />
                         )}
                         
                         {question.type === 'file-upload' && (
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                            <p className="text-sm text-gray-500">File upload area</p>
+                          <div className="border-2 border-dashed border-aged-brown rounded-lg p-6 text-center bg-parchment">
+                            <FileText className="h-8 w-8 mx-auto text-aged-brown mb-2" />
+                            <p className="font-body text-aged-brown">File upload area</p>
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
                 ))}
+                
+                {assessment.sections.length === 0 && (
+                  <div className="text-center py-8 text-aged-brown font-body italic">
+                    No sections yet. Add sections and questions to build your trial.
+                  </div>
+                )}
               </div>
-            </div>
+            </ParchmentCard>
           </div>
         )}
       </div>

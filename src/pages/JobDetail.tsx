@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Edit, FileText, Users, Calendar } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, Users, Calendar, Scroll } from 'lucide-react';
 import { Job } from '../database';
+import { ParchmentCard, WaxSealButton, TorchLoader, Badge } from '../components/ui';
+import JobModal from '../components/JobModal';
 
 const JobDetail: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -28,92 +31,115 @@ const JobDetail: React.FC = () => {
     }
   }, [jobId]);
 
+  const handleEditClose = () => {
+    setShowEditModal(false);
+    // Refresh job data after edit
+    if (jobId) {
+      fetch(`/api/jobs/${jobId}`)
+        .then(res => res.json())
+        .then(data => setJob(data))
+        .catch(err => console.error('Failed to refresh job:', err));
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <TorchLoader size="lg" text="Loading quest details..." />
       </div>
     );
   }
 
   if (!job) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Job not found</h2>
-        <p className="mt-2 text-gray-600">The job you're looking for doesn't exist.</p>
-        <Link
-          to="/jobs"
-          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200"
-        >
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <ParchmentCard className="p-12 text-center">
+          <Scroll className="h-16 w-16 mx-auto text-aged-brown mb-4" />
+          <h2 className="text-2xl sm:text-3xl font-medieval font-bold text-castle-stone mb-2">
+            Quest Not Found
+          </h2>
+          <p className="font-body text-aged-brown-dark mb-6">
+            The quest you're looking for doesn't exist or has been removed from the archives.
+          </p>
+          <Link to="/jobs">
+            <WaxSealButton variant="gold">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Jobs
+              Back to Quest Board
+            </WaxSealButton>
         </Link>
+        </ParchmentCard>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-4">
           <Link
             to="/jobs"
-            className="inline-flex items-center text-gray-600 hover:text-gray-900"
+            className="inline-flex items-center text-aged-brown hover:text-castle-stone font-medieval font-semibold transition-colors"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Jobs
+            Back to Quest Board
           </Link>
         </div>
-        <div className="flex items-center space-x-3">
-          <Link
-            to={`/assessments/${job.id}`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link to={`/assessments/${job.id}`}>
+            <WaxSealButton variant="gold">
             <FileText className="h-4 w-4 mr-2" />
-            Assessment
+              Training Trials
+            </WaxSealButton>
           </Link>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+          <WaxSealButton variant="primary" onClick={() => setShowEditModal(true)}>
             <Edit className="h-4 w-4 mr-2" />
-            Edit Job
-          </button>
+            Edit Quest
+          </WaxSealButton>
         </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-              <div className="mt-2 flex items-center space-x-4">
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    job.status === 'active'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
+      {/* Job Details Card */}
+      <ParchmentCard className="p-6 sm:p-8">
+        {/* Title Section */}
+        <div className="border-b-2 border-aged-brown pb-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-3xl sm:text-4xl font-medieval font-bold text-castle-stone mb-4">
+                📜 {job.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4">
+                <Badge
+                  variant={job.status === 'active' ? 'active' : 'archived'}
+                  icon={job.status === 'active' ? '✓' : '📜'}
                 >
-                  {job.status}
-                </span>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Created {new Date(job.createdAt).toLocaleDateString()}
+                  {job.status === 'active' ? 'Active Campaign' : 'Archived Scroll'}
+                </Badge>
+                <div className="flex items-center text-sm font-body text-aged-brown">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Posted {new Date(job.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-4">
-          <div className="space-y-6">
+        <div className="space-y-8">
             {/* Tags */}
             {job.tags.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Tags</h3>
+              <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4">
+                🛡️ Skills & Requirements
+              </h3>
                 <div className="flex flex-wrap gap-2">
                   {job.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800"
+                    className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-body bg-gold-light text-castle-stone border-2 border-gold shadow-sm hover:shadow-md transition-shadow"
                     >
                       {tag}
                     </span>
@@ -125,37 +151,68 @@ const JobDetail: React.FC = () => {
             {/* Description */}
             {job.description && (
               <div>
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Description</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
+              <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4">
+                📋 Quest Description
+              </h3>
+              <div className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-4 sm:p-6">
+                <p className="text-base sm:text-lg font-body text-castle-stone whitespace-pre-wrap leading-relaxed">
+                  {job.description}
+                </p>
+              </div>
               </div>
             )}
 
             {/* Requirements */}
             {job.requirements && job.requirements.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Requirements</h3>
-                <ul className="list-disc list-inside space-y-1">
+              <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4">
+                ⚔️ Requirements & Prerequisites
+              </h3>
+              <div className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-4 sm:p-6">
+                <ul className="space-y-3">
                   {job.requirements.map((req, index) => (
-                    <li key={index} className="text-gray-700">{req}</li>
+                    <li key={index} className="flex items-start">
+                      <span className="text-gold mr-3 font-bold">•</span>
+                      <span className="text-base sm:text-lg font-body text-castle-stone flex-1">
+                        {req}
+                      </span>
+                    </li>
                   ))}
                 </ul>
+              </div>
               </div>
             )}
 
             {/* Candidates Section */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-2">Candidates</h3>
-              <Link
-                to={`/candidates?jobId=${job.id}`}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
+          <div className="space-y-4">
+            <h3 className="text-xl font-medieval font-bold text-castle-stone mb-4">
+              🛡️ Warriors & Recruits
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              <Link to={`/candidates?jobId=${job.id}`}>
+                <WaxSealButton variant="gold">
                 <Users className="h-4 w-4 mr-2" />
-                View Candidates
+                  View All Candidates
+                </WaxSealButton>
+              </Link>
+              <Link to={`/assessments/${job.id}/take`}>
+                <WaxSealButton variant="primary">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Take Assessment (Candidate View)
+                </WaxSealButton>
               </Link>
             </div>
           </div>
         </div>
-      </div>
+      </ParchmentCard>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <JobModal
+          job={job}
+          onClose={handleEditClose}
+        />
+      )}
     </div>
   );
 };

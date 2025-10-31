@@ -99,6 +99,19 @@ export const handlers = [
     return HttpResponse.json(job);
   }),
 
+  http.get('/api/jobs/:id', async ({ params }) => {
+    await delay(200 + Math.random() * 1000);
+    
+    const { id } = params;
+    const job = await db.jobs.get(id as string);
+    
+    if (!job) {
+      return HttpResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+    
+    return HttpResponse.json(job);
+  }),
+
   http.patch('/api/jobs/:id', async ({ request, params }) => {
     await delay(200 + Math.random() * 1000);
     
@@ -199,6 +212,19 @@ export const handlers = [
       stage: candidate.stage,
       timestamp: new Date()
     });
+    
+    return HttpResponse.json(candidate);
+  }),
+
+  http.get('/api/candidates/:id', async ({ params }) => {
+    await delay(200 + Math.random() * 1000);
+    
+    const { id } = params;
+    const candidate = await db.candidates.get(id as string);
+    
+    if (!candidate) {
+      return HttpResponse.json({ error: 'Candidate not found' }, { status: 404 });
+    }
     
     return HttpResponse.json(candidate);
   }),

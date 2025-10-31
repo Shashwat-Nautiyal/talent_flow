@@ -17,11 +17,20 @@ export interface Candidate {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   stage: 'applied' | 'screen' | 'tech' | 'offer' | 'hired' | 'rejected';
   jobId: string;
   appliedAt: Date;
   updatedAt: Date;
   notes?: string;
+  // Profile fields
+  resume?: string; // URL or file reference
+  linkedin?: string;
+  portfolio?: string;
+  experience?: string; // Years of experience or description
+  skills?: string[]; // Array of skills
+  education?: string;
+  location?: string;
 }
 
 export interface CandidateTimeline {

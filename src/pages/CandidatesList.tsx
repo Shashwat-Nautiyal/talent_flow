@@ -43,6 +43,18 @@ const CandidateItem: React.FC<{ candidate: Candidate }> = ({ candidate }) => {
                   <Mail className="h-4 w-4" />
                   <span className="truncate">{candidate.email}</span>
                 </div>
+                {candidate.location && (
+                  <div className="flex items-center gap-1.5 hidden md:flex">
+                    <span>📍</span>
+                    <span className="truncate">{candidate.location}</span>
+                  </div>
+                )}
+                {candidate.skills && candidate.skills.length > 0 && (
+                  <div className="flex items-center gap-1.5 hidden lg:flex">
+                    <span>🛡️</span>
+                    <span className="truncate">{candidate.skills.slice(0, 2).join(', ')}{candidate.skills.length > 2 ? '...' : ''}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
                   <span>Applied {new Date(candidate.appliedAt).toLocaleDateString()}</span>
