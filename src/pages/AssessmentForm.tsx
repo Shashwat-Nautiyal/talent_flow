@@ -162,15 +162,37 @@ const AssessmentForm: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl font-medieval font-bold text-castle-stone mb-2">
             No Assessment Available
           </h2>
-          <p className="font-body text-aged-brown-dark mb-6">
+          <p className="font-body text-aged-brown-dark mb-4">
             This quest does not have a training trial yet.
           </p>
-          <Link to="/jobs">
-            <WaxSealButton variant="gold">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Quest Board
-            </WaxSealButton>
-          </Link>
+          <div className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-6 mb-6 text-left max-w-md mx-auto">
+            <h3 className="font-medieval font-bold text-castle-stone mb-3 flex items-center">
+              💡 How to Create an Assessment:
+            </h3>
+            <ol className="text-sm font-body text-aged-brown space-y-2 list-decimal list-inside">
+              <li>Go to the <span className="font-semibold text-castle-stone">Jobs Board</span></li>
+              <li>Click on a job or use the <span className="font-semibold text-castle-stone">📄 icon</span> to manage assessments</li>
+              <li>Click <span className="font-semibold text-castle-stone">"Training Trials"</span> button</li>
+              <li>Build your assessment with sections and questions</li>
+              <li>Save and return here to take the assessment!</li>
+            </ol>
+          </div>
+          <div className="flex gap-3 justify-center">
+            <Link to="/jobs">
+              <WaxSealButton variant="gold">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Quest Board
+              </WaxSealButton>
+            </Link>
+            {jobId && (
+              <Link to={`/assessments/${jobId}`}>
+                <WaxSealButton variant="primary">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Create Assessment
+                </WaxSealButton>
+              </Link>
+            )}
+          </div>
         </ParchmentCard>
       </div>
     );

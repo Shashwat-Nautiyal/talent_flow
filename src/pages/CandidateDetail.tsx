@@ -187,6 +187,14 @@ const CandidateDetail: React.FC = () => {
           </Link>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          {candidate?.jobId && (
+            <Link to={`/assessments/${candidate.jobId}/take/${candidate.id}`}>
+              <WaxSealButton variant="gold">
+                <FileText className="h-4 w-4 mr-2" />
+                Take Assessment
+              </WaxSealButton>
+            </Link>
+          )}
           <WaxSealButton variant="primary" onClick={() => setShowNotesModal(true)}>
             <MessageSquare className="h-4 w-4 mr-2" />
             Add Notes

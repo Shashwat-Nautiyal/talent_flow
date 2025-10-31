@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Archive, ArchiveRestore, Edit, Trash2, GripVertical, Scroll } from 'lucide-react';
+import { Plus, Search, Archive, ArchiveRestore, Edit, Trash2, GripVertical, Scroll, FileText } from 'lucide-react';
 import { Job, db } from '../database';
 import JobModal from '../components/JobModal';
 import { ParchmentCard, WaxSealButton, TorchLoader, Badge, Input, Select } from '../components/ui';
@@ -241,6 +241,13 @@ const JobsBoard: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0 sm:ml-4">
+                  <Link
+                    to={`/assessments/${job.id}`}
+                    className="p-2 text-castle-stone hover:text-gold hover:bg-parchment-dark rounded-lg transition-all duration-200"
+                    title="Manage assessment"
+                  >
+                    <FileText className="h-5 w-5" />
+                  </Link>
                   <button
                     onClick={() => handleEditJob(job)}
                     className="p-2 text-castle-stone hover:text-royal-purple hover:bg-parchment-dark rounded-lg transition-all duration-200"

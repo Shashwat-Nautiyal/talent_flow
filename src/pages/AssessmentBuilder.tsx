@@ -1,8 +1,367 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Eye, Save, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Eye, Save, FileText, GripVertical } from 'lucide-react';
 import { Assessment, AssessmentSection, AssessmentQuestion } from '../database';
 import { ParchmentCard, WaxSealButton, TorchLoader, Input, Badge } from '../components/ui';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Section Component
+const SortableSection: React.FC<{
+  section: AssessmentSection;
+  sectionIndex: number;
+  assessment: Assessment;
+  updateSection: (sectionId: string, updates: Partial<AssessmentSection>) => void;
+  removeSection: (sectionId: string) => void;
+  addQuestion: (sectionId: string) => void;
+  updateQuestion: (sectionId: string, questionId: string, updates: Partial<AssessmentQuestion>) => void;
+  removeQuestion: (sectionId: string, questionId: string) => void;
+  handleQuestionDragEnd: (sectionId: string) => (event: DragEndEvent) => void;
+}> = ({
+  section,
+  sectionIndex,
+  assessment,
+  updateSection,
+  removeSection,
+  addQuestion,
+  updateQuestion,
+  removeQuestion,
+  handleQuestionDragEnd
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <ParchmentCard className="p-6 border-l-4 border-gold">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 flex-1">
+            <button
+              {...attributes}
+              {...listeners}
+              className="p-1 text-aged-brown hover:text-gold cursor-grab active:cursor-grabbing"
+              title="Drag to reorder"
+            >
+              <GripVertical className="h-5 w-5" />
+            </button>
+            <input
+              type="text"
+              value={section.title}
+              onChange={(e) => updateSection(section.id, { title: e.target.value })}
+              className="text-xl font-medieval font-bold text-castle-stone bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-gold rounded px-2 py-1 flex-1"
+              placeholder={`Section ${sectionIndex + 1} Title`}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => addQuestion(section.id)}
+              className="p-2 text-royal-purple hover:text-royal-purple-dark hover:bg-parchment-dark rounded-lg transition-colors"
+              title="Add Question"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => removeSection(section.id)}
+              className="p-2 text-blood-red hover:text-blood-red-dark hover:bg-parchment-dark rounded-lg transition-colors"
+              title="Remove Section"
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <DndContext
+          sensors={useSensors(
+            useSensor(PointerSensor),
+            useSensor(KeyboardSensor, {
+              coordinateGetter: sortableKeyboardCoordinates,
+            })
+          )}
+          collisionDetection={closestCenter}
+          onDragEnd={handleQuestionDragEnd(section.id)}
+        >
+          <SortableContext
+            items={section.questions.map(q => q.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4 mt-6">
+              {section.questions.map((question, questionIndex) => (
+                <SortableQuestion
+                  key={question.id}
+                  question={question}
+                  questionIndex={questionIndex}
+                  sectionId={section.id}
+                  assessment={assessment}
+                  updateQuestion={updateQuestion}
+                  removeQuestion={removeQuestion}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </ParchmentCard>
+    </div>
+  );
+};
+
+// Sortable Question Component
+const SortableQuestion: React.FC<{
+  question: AssessmentQuestion;
+  questionIndex: number;
+  sectionId: string;
+  assessment: Assessment;
+  updateQuestion: (sectionId: string, questionId: string, updates: Partial<AssessmentQuestion>) => void;
+  removeQuestion: (sectionId: string, questionId: string) => void;
+}> = ({ question, questionIndex, sectionId, assessment, updateQuestion, removeQuestion }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-4 sm:p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            {...attributes}
+            {...listeners}
+            className="p-1 text-aged-brown hover:text-gold cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <Badge variant="default" icon="❓">
+            Q{questionIndex + 1}
+          </Badge>
+          <select
+            value={question.type}
+            onChange={(e) => updateQuestion(sectionId, question.id, { type: e.target.value as any })}
+            className="px-3 py-1.5 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold text-sm"
+          >
+            <option value="short-text">Short Text</option>
+            <option value="long-text">Long Text</option>
+            <option value="single-choice">Single Choice</option>
+            <option value="multi-choice">Multiple Choice</option>
+            <option value="numeric">Numeric</option>
+            <option value="file-upload">File Upload</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={question.required}
+              onChange={(e) => updateQuestion(sectionId, question.id, { required: e.target.checked })}
+              className="mr-2 w-4 h-4 text-gold focus:ring-gold"
+            />
+            <span className="text-sm font-body text-castle-stone">Required</span>
+          </label>
+          <button
+            onClick={() => removeQuestion(sectionId, question.id)}
+            className="p-1.5 text-blood-red hover:text-blood-red-dark hover:bg-parchment rounded-lg transition-colors"
+            title="Remove Question"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <Input
+        type="text"
+        value={question.question}
+        onChange={(e) => updateQuestion(sectionId, question.id, { question: e.target.value })}
+        placeholder="Enter question text..."
+      />
+
+      {(question.type === 'single-choice' || question.type === 'multi-choice') && (
+        <div className="mt-4">
+          <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+            Options (one per line)
+          </label>
+          <textarea
+            value={question.options?.join('\n') || ''}
+            onChange={(e) => updateQuestion(sectionId, question.id, {
+              options: e.target.value.split('\n').filter(opt => opt.trim())
+            })}
+            rows={4}
+            className="w-full px-4 py-3 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold"
+            placeholder="Option 1&#10;Option 2&#10;Option 3"
+          />
+        </div>
+      )}
+
+      {question.type === 'numeric' && (
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+              Min Value
+            </label>
+            <Input
+              type="number"
+              value={question.min?.toString() || ''}
+              onChange={(e) => updateQuestion(sectionId, question.id, { min: parseInt(e.target.value) || undefined })}
+              placeholder="Min"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+              Max Value
+            </label>
+            <Input
+              type="number"
+              value={question.max?.toString() || ''}
+              onChange={(e) => updateQuestion(sectionId, question.id, { max: parseInt(e.target.value) || undefined })}
+              placeholder="Max"
+            />
+          </div>
+        </div>
+      )}
+
+      {(question.type === 'short-text' || question.type === 'long-text') && (
+        <div className="mt-4">
+          <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+            Max Length
+          </label>
+          <Input
+            type="number"
+            value={question.maxLength?.toString() || ''}
+            onChange={(e) => updateQuestion(sectionId, question.id, { maxLength: parseInt(e.target.value) || undefined })}
+            placeholder="Character limit"
+          />
+        </div>
+      )}
+
+      {/* Conditional Logic */}
+      <div className="mt-4 border-t border-aged-brown pt-4">
+        <label className="flex items-center cursor-pointer mb-3">
+          <input
+            type="checkbox"
+            checked={!!question.conditionalLogic}
+            onChange={(e) => {
+              if (e.target.checked) {
+                // Enable conditional logic with default values
+                updateQuestion(sectionId, question.id, {
+                  conditionalLogic: {
+                    dependsOn: '',
+                    condition: 'equals',
+                    value: ''
+                  }
+                });
+              } else {
+                // Disable conditional logic
+                updateQuestion(sectionId, question.id, { conditionalLogic: undefined });
+              }
+            }}
+            className="mr-2 w-4 h-4 text-gold focus:ring-gold"
+          />
+          <span className="text-sm font-medieval font-semibold text-castle-stone">
+            🔀 Make this question conditional
+          </span>
+        </label>
+
+        {question.conditionalLogic && (
+          <div className="space-y-3 bg-parchment p-4 rounded-lg border border-aged-brown">
+            <div>
+              <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                Show this question only when:
+              </label>
+              <select
+                value={question.conditionalLogic.dependsOn || ''}
+                onChange={(e) => updateQuestion(sectionId, question.id, {
+                  conditionalLogic: { ...question.conditionalLogic!, dependsOn: e.target.value }
+                })}
+                className="w-full px-3 py-2 bg-parchment-dark border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold text-sm"
+              >
+                <option value="">Select a question...</option>
+                {assessment.sections.flatMap(s => s.questions)
+                  .filter(q => q.id !== question.id) // Can't depend on itself
+                  .map(q => (
+                    <option key={q.id} value={q.id}>
+                      {q.question.substring(0, 50)}{q.question.length > 50 ? '...' : ''}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                  Condition
+                </label>
+                <select
+                  value={question.conditionalLogic.condition || 'equals'}
+                  onChange={(e) => updateQuestion(sectionId, question.id, {
+                    conditionalLogic: { ...question.conditionalLogic!, condition: e.target.value }
+                  })}
+                  className="w-full px-3 py-2 bg-parchment-dark border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold text-sm"
+                >
+                  <option value="equals">Equals</option>
+                  <option value="notEquals">Not Equals</option>
+                  <option value="contains">Contains</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
+                  Value
+                </label>
+                <Input
+                  type="text"
+                  value={question.conditionalLogic.value?.toString() || ''}
+                  onChange={(e) => updateQuestion(sectionId, question.id, {
+                    conditionalLogic: { ...question.conditionalLogic!, value: e.target.value }
+                  })}
+                  placeholder="Expected value"
+                />
+              </div>
+            </div>
+
+            <p className="text-xs font-body text-aged-brown italic">
+              💡 This question will only appear if the selected question's answer matches the condition.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const AssessmentBuilder: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -11,6 +370,14 @@ const AssessmentBuilder: React.FC = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const fetchAssessment = async () => {
@@ -149,6 +516,45 @@ const AssessmentBuilder: React.FC = () => {
     } : null);
   };
 
+  const handleSectionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!assessment || !over || active.id === over.id) return;
+
+    const oldIndex = assessment.sections.findIndex(s => s.id === active.id);
+    const newIndex = assessment.sections.findIndex(s => s.id === over.id);
+
+    setAssessment(prev => prev ? {
+      ...prev,
+      sections: arrayMove(prev.sections, oldIndex, newIndex)
+    } : null);
+  };
+
+  const handleQuestionDragEnd = (sectionId: string) => (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!assessment || !over || active.id === over.id) return;
+
+    setAssessment(prev => {
+      if (!prev) return null;
+
+      return {
+        ...prev,
+        sections: prev.sections.map(section => {
+          if (section.id !== sectionId) return section;
+
+          const oldIndex = section.questions.findIndex(q => q.id === active.id);
+          const newIndex = section.questions.findIndex(q => q.id === over.id);
+
+          return {
+            ...section,
+            questions: arrayMove(section.questions, oldIndex, newIndex)
+          };
+        })
+      };
+    });
+  };
+
   const saveAssessment = async () => {
     if (!assessment) return;
 
@@ -259,146 +665,31 @@ const AssessmentBuilder: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              {assessment.sections.map((section, sectionIndex) => (
-                <ParchmentCard key={section.id} className="p-6 border-l-4 border-gold">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={section.title}
-                        onChange={(e) => updateSection(section.id, { title: e.target.value })}
-                        className="text-xl font-medieval font-bold text-castle-stone bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-gold rounded px-2 py-1 w-full"
-                        placeholder={`Section ${sectionIndex + 1} Title`}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => addQuestion(section.id)}
-                        className="p-2 text-royal-purple hover:text-royal-purple-dark hover:bg-parchment-dark rounded-lg transition-colors"
-                        title="Add Question"
-                      >
-                        <Plus className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => removeSection(section.id)}
-                        className="p-2 text-blood-red hover:text-blood-red-dark hover:bg-parchment-dark rounded-lg transition-colors"
-                        title="Remove Section"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 mt-6">
-                    {section.questions.map((question, questionIndex) => (
-                      <div key={question.id} className="bg-parchment-dark border-2 border-aged-brown rounded-lg p-4 sm:p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <Badge variant="default" icon="❓">
-                              Q{questionIndex + 1}
-                            </Badge>
-                            <select
-                              value={question.type}
-                              onChange={(e) => updateQuestion(section.id, question.id, { type: e.target.value as any })}
-                              className="px-3 py-1.5 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold text-sm"
-                            >
-                              <option value="short-text">Short Text</option>
-                              <option value="long-text">Long Text</option>
-                              <option value="single-choice">Single Choice</option>
-                              <option value="multi-choice">Multiple Choice</option>
-                              <option value="numeric">Numeric</option>
-                              <option value="file-upload">File Upload</option>
-                            </select>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <label className="flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={question.required}
-                                onChange={(e) => updateQuestion(section.id, question.id, { required: e.target.checked })}
-                                className="mr-2 w-4 h-4 text-gold focus:ring-gold"
-                              />
-                              <span className="text-sm font-body text-castle-stone">Required</span>
-                            </label>
-                            <button
-                              onClick={() => removeQuestion(section.id, question.id)}
-                              className="p-1.5 text-blood-red hover:text-blood-red-dark hover:bg-parchment rounded-lg transition-colors"
-                              title="Remove Question"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <Input
-                          type="text"
-                          value={question.question}
-                          onChange={(e) => updateQuestion(section.id, question.id, { question: e.target.value })}
-                          placeholder="Enter question text..."
-                        />
-
-                        {(question.type === 'single-choice' || question.type === 'multi-choice') && (
-                          <div className="mt-4">
-                            <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
-                              Options (one per line)
-                            </label>
-                            <textarea
-                              value={question.options?.join('\n') || ''}
-                              onChange={(e) => updateQuestion(section.id, question.id, { 
-                                options: e.target.value.split('\n').filter(opt => opt.trim()) 
-                              })}
-                              rows={4}
-                              className="w-full px-4 py-3 bg-parchment border-2 border-aged-brown rounded-md font-body text-castle-stone focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold"
-                              placeholder="Option 1&#10;Option 2&#10;Option 3"
-                            />
-                          </div>
-                        )}
-
-                        {question.type === 'numeric' && (
-                          <div className="mt-4 grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
-                                Min Value
-                              </label>
-                              <Input
-                                type="number"
-                                value={question.min?.toString() || ''}
-                                onChange={(e) => updateQuestion(section.id, question.id, { min: parseInt(e.target.value) || undefined })}
-                                placeholder="Min"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
-                                Max Value
-                              </label>
-                              <Input
-                                type="number"
-                                value={question.max?.toString() || ''}
-                                onChange={(e) => updateQuestion(section.id, question.id, { max: parseInt(e.target.value) || undefined })}
-                                placeholder="Max"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {(question.type === 'short-text' || question.type === 'long-text') && (
-                          <div className="mt-4">
-                            <label className="block text-sm font-medieval font-semibold text-castle-stone mb-2">
-                              Max Length
-                            </label>
-                            <Input
-                              type="number"
-                              value={question.maxLength?.toString() || ''}
-                              onChange={(e) => updateQuestion(section.id, question.id, { maxLength: parseInt(e.target.value) || undefined })}
-                              placeholder="Character limit"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ParchmentCard>
-              ))}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleSectionDragEnd}
+              >
+                <SortableContext
+                  items={assessment.sections.map(s => s.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {assessment.sections.map((section, sectionIndex) => (
+                    <SortableSection
+                      key={section.id}
+                      section={section}
+                      sectionIndex={sectionIndex}
+                      assessment={assessment}
+                      updateSection={updateSection}
+                      removeSection={removeSection}
+                      addQuestion={addQuestion}
+                      updateQuestion={updateQuestion}
+                      removeQuestion={removeQuestion}
+                      handleQuestionDragEnd={handleQuestionDragEnd}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
 
               <button
                 onClick={addSection}
@@ -439,6 +730,11 @@ const AssessmentBuilder: React.FC = () => {
                         <label className="block text-base font-medieval font-semibold text-castle-stone">
                           {question.question}
                           {question.required && <span className="text-blood-red ml-1">*</span>}
+                          {question.conditionalLogic && (
+                            <span className="ml-2 text-xs font-body text-royal-purple bg-royal-purple bg-opacity-10 px-2 py-1 rounded border border-royal-purple">
+                              🔀 Conditional
+                            </span>
+                          )}
                         </label>
                         
                         {question.type === 'short-text' && (

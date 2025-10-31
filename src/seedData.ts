@@ -159,35 +159,47 @@ export async function seedDatabase() {
           title: 'Professional Experience',
           questions: [
             {
-              id: crypto.randomUUID(),
+              id: 'exp-years',
               type: 'single-choice',
               question: 'How many years of relevant professional experience do you have?',
               required: true,
               options: ['0-1 years', '2-3 years', '4-5 years', '6+ years']
             },
             {
-              id: crypto.randomUUID(),
+              id: 'senior-exp',
+              type: 'long-text',
+              question: 'Please describe your senior-level experience and leadership roles',
+              required: true,
+              maxLength: 800,
+              conditionalLogic: {
+                dependsOn: 'exp-years',
+                condition: 'equals',
+                value: '6+ years'
+              }
+            },
+            {
+              id: 'tech-stack',
               type: 'multi-choice',
               question: 'Which technologies/tools are you proficient in?',
               required: true,
               options: ['JavaScript/TypeScript', 'React', 'Node.js', 'Python', 'Java', 'AWS/Azure', 'Docker/Kubernetes', 'SQL/NoSQL']
             },
             {
-              id: crypto.randomUUID(),
+              id: 'achievement',
               type: 'short-text',
               question: 'Describe your most significant professional achievement',
               required: true,
               maxLength: 500
             },
             {
-              id: crypto.randomUUID(),
+              id: 'problem-solving',
               type: 'long-text',
               question: 'Explain your approach to solving complex technical problems',
               required: true,
               maxLength: 1000
             },
             {
-              id: crypto.randomUUID(),
+              id: 'self-rating',
               type: 'numeric',
               question: 'Rate your technical expertise (1-10)',
               required: true,
@@ -201,18 +213,51 @@ export async function seedDatabase() {
           title: 'Skills & Competencies',
           questions: [
             {
-              id: crypto.randomUUID(),
+              id: 'team-lead',
+              type: 'single-choice',
+              question: 'Have you led a team before?',
+              required: true,
+              options: ['Yes', 'No', 'Informally']
+            },
+            {
+              id: 'team-size',
+              type: 'numeric',
+              question: 'How many team members did you lead?',
+              required: true,
+              min: 1,
+              max: 100,
+              conditionalLogic: {
+                dependsOn: 'team-lead',
+                condition: 'equals',
+                value: 'Yes'
+              }
+            },
+            {
+              id: 'deadline-handling',
               type: 'single-choice',
               question: 'How do you handle tight deadlines and pressure?',
               required: true,
               options: ['Prioritize tasks effectively', 'Communicate with team and stakeholders', 'Break down work into manageable chunks', 'Stay focused and maintain quality']
             },
             {
-              id: crypto.randomUUID(),
+              id: 'team-challenge',
               type: 'long-text',
               question: 'Describe a challenging team situation and how you handled it',
               required: true,
               maxLength: 800
+            },
+            {
+              id: 'remote-work',
+              type: 'single-choice',
+              question: 'Do you prefer remote, hybrid, or on-site work?',
+              required: true,
+              options: ['Remote', 'Hybrid', 'On-site', 'Flexible']
+            },
+            {
+              id: 'resume-upload',
+              type: 'file-upload',
+              question: 'Upload your resume (optional)',
+              required: false
             }
           ]
         }

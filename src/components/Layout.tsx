@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Scroll, Shield, Menu, X, Swords, Castle } from 'lucide-react';
+import { Scroll, Shield, Menu, X, Swords, Castle, FileText } from 'lucide-react';
 import { useState } from 'react';
 
 interface LayoutProps {
@@ -15,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Castle Hall', href: '/', icon: Castle, exact: true },
     { name: 'Job Board', href: '/jobs', icon: Scroll },
     { name: 'Candidates', href: '/candidates', icon: Shield },
+    { name: 'Assessments', href: '/assessments', icon: FileText },
     { name: 'Pipeline', href: '/pipeline', icon: Swords },
   ];
 
