@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Eye, Save, FileText, Settings } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Eye, Save, FileText } from 'lucide-react';
 import { Assessment, AssessmentSection, AssessmentQuestion } from '../database';
 import { ParchmentCard, WaxSealButton, TorchLoader, Input, Badge } from '../components/ui';
 

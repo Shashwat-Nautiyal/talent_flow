@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Calendar, MessageSquare, Edit, Phone, FileText, ExternalLink, MapPin, Briefcase, GraduationCap, Award } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, MessageSquare, Phone, FileText, ExternalLink, MapPin, Briefcase, GraduationCap, Award } from 'lucide-react';
 import { Candidate, CandidateTimeline, db } from '../database';
-import { ParchmentCard, WaxSealButton, TorchLoader, Badge, Input, ScrollModal } from '../components/ui';
+import { ParchmentCard, WaxSealButton, TorchLoader, Badge, ScrollModal } from '../components/ui';
 import { MentionTextarea } from '../components/MentionTextarea';
 import { MentionRenderer } from '../components/MentionRenderer';
 
@@ -14,9 +14,11 @@ const CandidateDetail: React.FC = () => {
   const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNotesModal, setShowNotesModal] = useState(false);
-  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  // const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [notes, setNotes] = useState('');
   const [allCandidates, setAllCandidates] = useState<Array<{ id: string; name: string }>>([]);
+  // Commented out unused edit profile state - can be uncommented when edit profile modal is implemented
+  /*
   const [editProfile, setEditProfile] = useState({
     phone: '',
     linkedin: '',
@@ -26,6 +28,7 @@ const CandidateDetail: React.FC = () => {
     education: '',
     location: ''
   });
+  */
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -39,6 +42,7 @@ const CandidateDetail: React.FC = () => {
           const candidateData = await candidateResponse.json();
           setCandidate(candidateData);
           setNotes(candidateData.notes || '');
+          /* Commented out - edit profile functionality
           setEditProfile({
             phone: candidateData.phone || '',
             linkedin: candidateData.linkedin || '',
@@ -48,6 +52,7 @@ const CandidateDetail: React.FC = () => {
             education: candidateData.education || '',
             location: candidateData.location || ''
           });
+          */
         }
 
         if (timelineResponse.ok) {
@@ -147,6 +152,8 @@ const CandidateDetail: React.FC = () => {
     }
   };
 
+  // Commented out - Edit profile functionality to be implemented
+  /*
   const handleSaveProfile = async () => {
     if (!candidate) return;
 
@@ -163,6 +170,7 @@ const CandidateDetail: React.FC = () => {
       console.error('Failed to save profile:', error);
     }
   };
+  */
 
   const stages: Candidate['stage'][] = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
 
@@ -224,10 +232,12 @@ const CandidateDetail: React.FC = () => {
           </Link>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Edit Profile button - functionality to be implemented
           <WaxSealButton variant="gold" onClick={() => setShowEditProfileModal(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Profile
           </WaxSealButton>
+          */}
           <WaxSealButton variant="primary" onClick={() => setShowNotesModal(true)}>
             <MessageSquare className="h-4 w-4 mr-2" />
             Add Notes
