@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, X, AlertCircle, FileText } from 'lucide-react';
-import { Assessment, AssessmentQuestion } from '../database';
+import { Assessment, AssessmentQuestion, db } from '../database';
 import { ParchmentCard, WaxSealButton, TorchLoader, Input } from '../components/ui';
 
 const AssessmentForm: React.FC = () => {
@@ -17,11 +17,13 @@ const AssessmentForm: React.FC = () => {
   useEffect(() => {
     const fetchAssessment = async () => {
       try {
-        const response = await fetch(`/api/assessments/${jobId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setAssessment(data);
-        }
+        // Fetch directly from IndexedDB
+        const data = await db.assessments
+          .where('jobId')
+          .equals(jobId!)
+          .first();
+        
+        setAssessment(data || null);
       } catch (error) {
         console.error('Failed to fetch assessment:', error);
       } finally {
@@ -121,24 +123,21 @@ const AssessmentForm: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const responseData = {
+      // Save directly to IndexedDB
+      const response = {
+        id: crypto.randomUUID(),
         assessmentId: assessment.id,
         candidateId: candidateId || 'anonymous',
-        responses
+        responses,
+        submittedAt: new Date()
       };
 
-      const response = await fetch(`/api/assessments/${jobId}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(responseData)
-      });
+      await db.assessmentResponses.add(response);
 
-      if (response.ok) {
-        setSubmitSuccess(true);
-        setTimeout(() => {
-          navigate('/jobs');
-        }, 2000);
-      }
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        navigate('/jobs');
+      }, 2000);
     } catch (error) {
       console.error('Failed to submit assessment:', error);
     } finally {

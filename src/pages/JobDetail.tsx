@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Edit, FileText, Users, Calendar, Scroll } from 'lucide-react';
-import { Job } from '../database';
+import { Job, db } from '../database';
 import { ParchmentCard, WaxSealButton, TorchLoader, Badge } from '../components/ui';
 import JobModal from '../components/JobModal';
 
@@ -14,9 +14,9 @@ const JobDetail: React.FC = () => {
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const response = await fetch(`/api/jobs/${jobId}`);
-        if (response.ok) {
-          const jobData = await response.json();
+        // Fetch directly from IndexedDB
+        const jobData = await db.jobs.get(jobId!);
+        if (jobData) {
           setJob(jobData);
         }
       } catch (error) {
@@ -31,14 +31,16 @@ const JobDetail: React.FC = () => {
     }
   }, [jobId]);
 
-  const handleEditClose = () => {
+  const handleEditClose = async () => {
     setShowEditModal(false);
     // Refresh job data after edit
     if (jobId) {
-      fetch(`/api/jobs/${jobId}`)
-        .then(res => res.json())
-        .then(data => setJob(data))
-        .catch(err => console.error('Failed to refresh job:', err));
+      try {
+        const data = await db.jobs.get(jobId);
+        if (data) setJob(data);
+      } catch (err) {
+        console.error('Failed to refresh job:', err);
+      }
     }
   };
 

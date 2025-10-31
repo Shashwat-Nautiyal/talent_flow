@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Eye, Save, FileText, GripVertical } from 'lucide-react';
-import { Assessment, AssessmentSection, AssessmentQuestion } from '../database';
+import { Assessment, AssessmentSection, AssessmentQuestion, db } from '../database';
 import { ParchmentCard, WaxSealButton, TorchLoader, Input, Badge } from '../components/ui';
 import {
   DndContext,
@@ -382,24 +382,14 @@ const AssessmentBuilder: React.FC = () => {
   useEffect(() => {
     const fetchAssessment = async () => {
       try {
-        const response = await fetch(`/api/assessments/${jobId}`);
-        if (response.ok) {
-          const data = await response.json();
-          // If no assessment exists (data is null), create a new one
-          if (!data || data === null) {
-            setAssessment({
-              id: crypto.randomUUID(),
-              jobId: jobId!,
-              title: 'Training Trial Assessment',
-              sections: [],
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-          } else {
-            setAssessment(data);
-          }
-        } else {
-          // Create new assessment if request failed
+        // Fetch directly from IndexedDB
+        const data = await db.assessments
+          .where('jobId')
+          .equals(jobId!)
+          .first();
+        
+        // If no assessment exists, create a new one
+        if (!data) {
           setAssessment({
             id: crypto.randomUUID(),
             jobId: jobId!,
@@ -408,6 +398,8 @@ const AssessmentBuilder: React.FC = () => {
             createdAt: new Date(),
             updatedAt: new Date()
           });
+        } else {
+          setAssessment(data);
         }
       } catch (error) {
         console.error('Failed to fetch assessment:', error);
@@ -561,15 +553,26 @@ const AssessmentBuilder: React.FC = () => {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      const response = await fetch(`/api/assessments/${jobId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assessment)
-      });
-      if (response.ok) {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+      // Save directly to IndexedDB
+      const existing = await db.assessments
+        .where('jobId')
+        .equals(jobId!)
+        .first();
+
+      if (existing) {
+        await db.assessments.update(existing.id, {
+          ...assessment,
+          updatedAt: new Date()
+        });
+      } else {
+        await db.assessments.add({
+          ...assessment,
+          updatedAt: new Date()
+        });
       }
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error('Failed to save assessment:', error);
     } finally {

@@ -19,21 +19,21 @@ const CandidateDetail: React.FC = () => {
   useEffect(() => {
     const fetchCandidate = async () => {
       try {
-        const [candidateResponse, timelineResponse] = await Promise.all([
-          fetch(`/api/candidates/${id}`),
-          fetch(`/api/candidates/${id}/timeline`)
-        ]);
-
-        if (candidateResponse.ok) {
-          const candidateData = await candidateResponse.json();
+        // Fetch directly from IndexedDB instead of using fetch API
+        const candidateData = await db.candidates.get(id!);
+        
+        if (candidateData) {
           setCandidate(candidateData);
           setNotes(candidateData.notes || '');
         }
 
-        if (timelineResponse.ok) {
-          const timelineData = await timelineResponse.json();
-          setTimeline(timelineData);
-        }
+        // Fetch timeline from IndexedDB
+        const timelineData = await db.candidateTimeline
+          .where('candidateId')
+          .equals(id!)
+          .sortBy('timestamp');
+        
+        setTimeline(timelineData);
       } catch (error) {
         console.error('Failed to fetch candidate:', error);
       } finally {
@@ -84,27 +84,31 @@ const CandidateDetail: React.FC = () => {
     if (!candidate) return;
 
     try {
-      await fetch(`/api/candidates/${candidate.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: newStage })
+      // Update in IndexedDB directly
+      await db.candidates.update(candidate.id, { 
+        stage: newStage,
+        updatedAt: new Date()
       });
 
-      // Refresh data
-      const [candidateResponse, timelineResponse] = await Promise.all([
-        fetch(`/api/candidates/${id}`),
-        fetch(`/api/candidates/${id}/timeline`)
-      ]);
+      // Add timeline entry
+      await db.candidateTimeline.add({
+        id: crypto.randomUUID(),
+        candidateId: candidate.id,
+        stage: newStage,
+        timestamp: new Date()
+      });
 
-      if (candidateResponse.ok) {
-        const candidateData = await candidateResponse.json();
+      // Refresh data from IndexedDB
+      const candidateData = await db.candidates.get(id!);
+      const timelineData = await db.candidateTimeline
+        .where('candidateId')
+        .equals(id!)
+        .sortBy('timestamp');
+
+      if (candidateData) {
         setCandidate(candidateData);
       }
-
-      if (timelineResponse.ok) {
-        const timelineData = await timelineResponse.json();
-        setTimeline(timelineData);
-      }
+      setTimeline(timelineData);
     } catch (error) {
       console.error('Failed to update candidate stage:', error);
     }
@@ -114,10 +118,10 @@ const CandidateDetail: React.FC = () => {
     if (!candidate) return;
 
     try {
-      await fetch(`/api/candidates/${candidate.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes })
+      // Update in IndexedDB directly
+      await db.candidates.update(candidate.id, { 
+        notes,
+        updatedAt: new Date()
       });
 
       setCandidate(prev => prev ? { ...prev, notes } : null);
