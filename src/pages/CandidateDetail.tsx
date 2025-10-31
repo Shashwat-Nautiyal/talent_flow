@@ -14,22 +14,8 @@ const CandidateDetail: React.FC = () => {
   const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNotesModal, setShowNotesModal] = useState(false);
-  // const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [notes, setNotes] = useState('');
   const [allCandidates, setAllCandidates] = useState<Array<{ id: string; name: string }>>([]);
-  // Commented out unused edit profile state - can be uncommented when edit profile modal is implemented
-  /*
-  const [editProfile, setEditProfile] = useState({
-    phone: '',
-    linkedin: '',
-    portfolio: '',
-    experience: '',
-    skills: [] as string[],
-    education: '',
-    location: ''
-  });
-  */
-
   useEffect(() => {
     const fetchCandidate = async () => {
       try {
@@ -42,17 +28,6 @@ const CandidateDetail: React.FC = () => {
           const candidateData = await candidateResponse.json();
           setCandidate(candidateData);
           setNotes(candidateData.notes || '');
-          /* Commented out - edit profile functionality
-          setEditProfile({
-            phone: candidateData.phone || '',
-            linkedin: candidateData.linkedin || '',
-            portfolio: candidateData.portfolio || '',
-            experience: candidateData.experience || '',
-            skills: candidateData.skills || [],
-            education: candidateData.education || '',
-            location: candidateData.location || ''
-          });
-          */
         }
 
         if (timelineResponse.ok) {
@@ -152,26 +127,6 @@ const CandidateDetail: React.FC = () => {
     }
   };
 
-  // Commented out - Edit profile functionality to be implemented
-  /*
-  const handleSaveProfile = async () => {
-    if (!candidate) return;
-
-    try {
-      await fetch(`/api/candidates/${candidate.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editProfile)
-      });
-
-      setCandidate(prev => prev ? { ...prev, ...editProfile } : null);
-      setShowEditProfileModal(false);
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-    }
-  };
-  */
-
   const stages: Candidate['stage'][] = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
 
   const getStageInfo = (stage: Candidate['stage']) => {
@@ -232,12 +187,6 @@ const CandidateDetail: React.FC = () => {
           </Link>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Edit Profile button - functionality to be implemented
-          <WaxSealButton variant="gold" onClick={() => setShowEditProfileModal(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Profile
-          </WaxSealButton>
-          */}
           <WaxSealButton variant="primary" onClick={() => setShowNotesModal(true)}>
             <MessageSquare className="h-4 w-4 mr-2" />
             Add Notes
